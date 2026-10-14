@@ -11,6 +11,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Som Fit">
+<script src="https://accounts.google.com/gsi/client" async defer></script>
 <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
 <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
 <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
@@ -314,34 +315,51 @@ function SplashScreen({onDone}){
 }
 
 // ── Login ──
+var GOOGLE_CLIENT_ID="824322486194-mhm0bphtf267bdf3tj22ehqck9lj9p3v.apps.googleusercontent.com";
 function LoginScreen({onDone}){
-  const [email,setEmail]=useState("");
-  const [pass,setPass]=useState("");
+  const [error,setError]=useState("");
+  const [loading,setLoading]=useState(false);
+  const googleBtnRef=useRef(null);
+  useEffect(function(){
+    function initGoogle(){
+      if(!window.google||!window.google.accounts){setTimeout(initGoogle,200);return;}
+      window.google.accounts.id.initialize({
+        client_id:GOOGLE_CLIENT_ID,
+        callback:function(response){
+          try{
+            var parts=response.credential.split(".");
+            var payload=JSON.parse(atob(parts[1].replace(/-/g,"+").replace(/_/g,"/")));
+            try{localStorage.setItem("sf:googleUser",JSON.stringify({name:payload.name,email:payload.email,avatar:payload.picture}));}catch(e){}
+            setLoading(false);
+            onDone();
+          }catch(e){setError("Sign-in failed. Try again.");setLoading(false);}
+        }
+      });
+      if(googleBtnRef.current){
+        window.google.accounts.id.renderButton(googleBtnRef.current,{
+          theme:"outline",size:"large",shape:"pill",width:320,text:"continue_with"
+        });
+      }
+    }
+    initGoogle();
+  },[]);
+  function handleSkip(){onDone();}
   return(
     <div style={{minHeight:"100vh",background:C.bg,padding:"60px 24px 40px",display:"flex",flexDirection:"column"}}>
       <div style={{textAlign:"center",marginBottom:40}}>
         <div style={{fontSize:40,marginBottom:12}}>🏃</div>
-        <div style={{fontSize:28,fontWeight:900,background:G.hero,WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent"}}>Welcome Back</div>
-        <div style={{color:C.muted,fontSize:14,marginTop:6}}>Your fitness journey continues</div>
+        <div style={{fontSize:28,fontWeight:900,background:G.hero,WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent"}}>Welcome to Som Fit</div>
+        <div style={{color:C.muted,fontSize:14,marginTop:6}}>Sign in to track your fitness journey</div>
       </div>
-      <div style={{display:"flex",flexDirection:"column",gap:12,marginBottom:24}}>
-        {[{icon:"🍎",label:"Continue with Apple",bg:"#fff",color:"#000"},{icon:"🔍",label:"Continue with Google",bg:"#fff",color:"#000"},{icon:"📱",label:"Continue with Phone",bg:C.card,color:C.text}].map(function(b,i){
-          return <button key={i} onClick={onDone} style={{padding:"14px",borderRadius:16,border:"1px solid "+C.border,background:b.bg,color:b.color,fontSize:14,fontWeight:700,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:10}}>
-            <span style={{fontSize:20}}>{b.icon}</span>{b.label}
-          </button>;
-        })}
+      <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:16,marginBottom:32}}>
+        <div ref={googleBtnRef} style={{minHeight:44,display:"flex",justifyContent:"center"}}></div>
+        {error&&<div style={{color:"#ff6b6b",fontSize:13,textAlign:"center"}}>{error}</div>}
       </div>
       <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:24}}>
         <div style={{flex:1,height:1,background:C.border}}/><span style={{color:C.muted,fontSize:12}}>or</span><div style={{flex:1,height:1,background:C.border}}/>
       </div>
-      <div style={{display:"flex",flexDirection:"column",gap:12,marginBottom:8}}>
-        <style>{`.sf-input::placeholder{color:rgba(255,255,255,0.55);font-weight:500;}.sf-input:focus{border-color:#80DEEA !important;box-shadow:0 0 0 3px rgba(128,222,234,0.15);}`}</style>
-        <input className="sf-input" value={email} onChange={function(e){setEmail(e.target.value);}} placeholder="Email address" style={{padding:"14px 16px",borderRadius:16,border:"1px solid "+C.border,background:"rgba(255,255,255,0.08)",color:C.text,fontSize:14,outline:"none",transition:"border-color 0.2s,box-shadow 0.2s"}}/>
-        <input className="sf-input" value={pass} onChange={function(e){setPass(e.target.value);}} placeholder="Password" type="password" style={{padding:"14px 16px",borderRadius:16,border:"1px solid "+C.border,background:"rgba(255,255,255,0.08)",color:C.text,fontSize:14,outline:"none",transition:"border-color 0.2s,box-shadow 0.2s"}}/>
-      </div>
-      <div style={{textAlign:"right",marginBottom:24}}><span style={{color:C.cyan,fontSize:12,cursor:"pointer"}}>Forgot password?</span></div>
-      <button onClick={onDone} style={{padding:"16px",borderRadius:18,border:"none",background:G.hero,color:"#0D47A1",fontSize:16,fontWeight:900,cursor:"pointer",marginBottom:16}}>Sign In</button>
-      <div style={{textAlign:"center",color:C.muted,fontSize:13}}>Don't have an account? <span style={{color:C.green,fontWeight:700,cursor:"pointer"}} onClick={onDone}>Sign up</span></div>
+      <button onClick={handleSkip} style={{padding:"16px",borderRadius:18,border:"1px solid "+C.border,background:"transparent",color:C.text,fontSize:15,fontWeight:700,cursor:"pointer",marginBottom:12}}>Continue without account</button>
+      <div style={{textAlign:"center",color:C.muted,fontSize:12,marginTop:8}}>By continuing you agree to our Terms & Privacy Policy</div>
     </div>
   );
 }
