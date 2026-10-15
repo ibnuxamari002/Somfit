@@ -12,6 +12,23 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Som Fit">
 <script src="https://accounts.google.com/gsi/client" async defer></script>
+<script type="module">
+  import{initializeApp}from"https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+  import{getAuth,GoogleAuthProvider,signInWithCredential,onAuthStateChanged,signOut}from"https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+  import{getFirestore,doc,setDoc,getDoc,serverTimestamp}from"https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+  const firebaseConfig={
+    apiKey:"AIzaSyBlIlE7uJak4x6Bu30U0EkUnU3TL-a-GqM",
+    authDomain:"som-fit-46537.firebaseapp.com",
+    projectId:"som-fit-46537",
+    storageBucket:"som-fit-46537.firebasestorage.app",
+    messagingSenderId:"840709653808",
+    appId:"1:840709653808:web:26f0992c62f071db6df4f5"
+  };
+  const app=initializeApp(firebaseConfig);
+  const auth=getAuth(app);
+  const db=getFirestore(app);
+  window.__FB={auth,db,GoogleAuthProvider,signInWithCredential,signOut,doc,setDoc,getDoc,serverTimestamp,onAuthStateChanged};
+</script>
 <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
 <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
 <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
@@ -320,39 +337,64 @@ function LoginScreen({onDone}){
   const [error,setError]=useState("");
   const [loading,setLoading]=useState(false);
   const googleBtnRef=useRef(null);
+
   useEffect(function(){
-    function initGoogle(){
-      if(!window.google||!window.google.accounts){setTimeout(initGoogle,200);return;}
+    // Wait for Firebase + Google GSI both ready
+    function tryInit(){
+      if(!window.__FB||!window.google||!window.google.accounts){setTimeout(tryInit,300);return;}
+      var{auth,db,GoogleAuthProvider,signInWithCredential,doc,setDoc,serverTimestamp}=window.__FB;
       window.google.accounts.id.initialize({
         client_id:GOOGLE_CLIENT_ID,
         callback:function(response){
+          setLoading(true);
           try{
-            var parts=response.credential.split(".");
-            var payload=JSON.parse(atob(parts[1].replace(/-/g,"+").replace(/_/g,"/")));
-            try{localStorage.setItem("sf:googleUser",JSON.stringify({name:payload.name,email:payload.email,avatar:payload.picture}));}catch(e){}
-            setLoading(false);
-            onDone();
+            // Sign in to Firebase with the Google credential
+            var credential=GoogleAuthProvider.credential(response.credential);
+            signInWithCredential(auth,credential).then(function(result){
+              var user=result.user;
+              // Save user to Firestore users collection
+              setDoc(doc(db,"users",user.uid),{
+                uid:user.uid,
+                name:user.displayName||"",
+                email:user.email||"",
+                avatar:user.photoURL||"",
+                lastLogin:serverTimestamp(),
+                platform:"web"
+              },{merge:true}).catch(function(e){console.warn("Firestore write failed:",e);});
+              // Also cache locally for fast access
+              try{localStorage.setItem("sf:googleUser",JSON.stringify({name:user.displayName,email:user.email,avatar:user.photoURL,uid:user.uid}));}catch(e){}
+              setLoading(false);
+              onDone();
+            }).catch(function(e){
+              setError("Sign-in failed: "+e.message);
+              setLoading(false);
+            });
           }catch(e){setError("Sign-in failed. Try again.");setLoading(false);}
         }
       });
       if(googleBtnRef.current){
         window.google.accounts.id.renderButton(googleBtnRef.current,{
-          theme:"outline",size:"large",shape:"pill",width:320,text:"continue_with"
+          theme:"outline",size:"large",shape:"pill",width:300,text:"continue_with"
         });
       }
     }
-    initGoogle();
+    tryInit();
   },[]);
+
   function handleSkip(){onDone();}
+
   return(
     <div style={{minHeight:"100vh",background:C.bg,padding:"60px 24px 40px",display:"flex",flexDirection:"column"}}>
       <div style={{textAlign:"center",marginBottom:40}}>
         <div style={{fontSize:40,marginBottom:12}}>🏃</div>
         <div style={{fontSize:28,fontWeight:900,background:G.hero,WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent"}}>Welcome to Som Fit</div>
-        <div style={{color:C.muted,fontSize:14,marginTop:6}}>Sign in to track your fitness journey</div>
+        <div style={{color:C.muted,fontSize:14,marginTop:6}}>Sign in to sync your fitness data</div>
       </div>
       <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:16,marginBottom:32}}>
-        <div ref={googleBtnRef} style={{minHeight:44,display:"flex",justifyContent:"center"}}></div>
+        {loading
+          ?<div style={{color:C.green,fontSize:14,fontWeight:700}}>Signing you in…</div>
+          :<div ref={googleBtnRef} style={{minHeight:44,display:"flex",justifyContent:"center"}}></div>
+        }
         {error&&<div style={{color:"#ff6b6b",fontSize:13,textAlign:"center"}}>{error}</div>}
       </div>
       <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:24}}>
