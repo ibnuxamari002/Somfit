@@ -15,7 +15,7 @@
 <script type="module">
   import{initializeApp}from"https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
   import{getAuth,GoogleAuthProvider,signInWithCredential,onAuthStateChanged,signOut}from"https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
-  import{getFirestore,doc,setDoc,getDoc,serverTimestamp}from"https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+  import{getFirestore,doc,setDoc,getDoc,serverTimestamp,collection,getDocs,deleteDoc,writeBatch}from"https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
   const firebaseConfig={
     apiKey:"AIzaSyBlIlE7uJak4x6Bu30U0EkUnU3TL-a-GqM",
     authDomain:"som-fit-46537.firebaseapp.com",
@@ -27,7 +27,7 @@
   const app=initializeApp(firebaseConfig);
   const auth=getAuth(app);
   const db=getFirestore(app);
-  window.__FB={auth,db,GoogleAuthProvider,signInWithCredential,signOut,doc,setDoc,getDoc,serverTimestamp,onAuthStateChanged};
+  window.__FB={auth,db,GoogleAuthProvider,signInWithCredential,signOut,doc,setDoc,getDoc,serverTimestamp,onAuthStateChanged,collection,getDocs,deleteDoc,writeBatch};
 </script>
 <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
 <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
@@ -44,12 +44,14 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;heigh
 <body>
 <div id="root"></div>
 <script type="text/babel">
-const {useState,useEffect,useRef}=React;
+const {useState,useEffect,useRef,useCallback}=React;
+
+// ── Current Firebase user uid (global, updated by onAuthStateChanged) ──
+window.__sfUid=null;
 
 // ── Persistence helper ──
-// usePersist(key, defaultValue) — works like useState but reads/writes localStorage.
-// Gracefully degrades: if localStorage is unavailable (private mode etc.) it just
-// behaves like plain useState so nothing breaks.
+// usePersist(key, defaultValue) — reads/writes localStorage AND syncs to Firestore
+// when a user is signed in. Cloud data wins on first load after sign-in.
 function usePersist(key,def){
   var full="sf:"+key;
   function load(){
@@ -58,11 +60,45 @@ function usePersist(key,def){
   }
   var pair=useState(load);
   var val=pair[0],setVal=pair[1];
+  var initialSyncDone=useRef(false);
+
+  // Write to localStorage on every change
   useEffect(function(){
     try{localStorage.setItem(full,JSON.stringify(val));}
     catch(e){}
   },[val]);
-  return [val,setVal];
+
+  // Write to Firestore whenever value changes and user is signed in
+  useEffect(function(){
+    if(!initialSyncDone.current)return; // don't write during initial cloud pull
+    var uid=window.__sfUid;
+    if(!uid||!window.__FB)return;
+    var fb=window.__FB;
+    fb.setDoc(fb.doc(fb.db,"users",uid,"data","appData"),{[key]:val},{merge:true})
+      .catch(function(e){console.warn("Cloud sync write failed:",key,e);});
+  },[val]);
+
+  return [val,function(newVal){
+    initialSyncDone.current=true;
+    setVal(newVal);
+  }];
+}
+
+// ── Pull all user data from Firestore after sign-in ──
+function pullCloudData(uid,setters){
+  if(!uid||!window.__FB)return;
+  var fb=window.__FB;
+  fb.getDoc(fb.doc(fb.db,"users",uid,"data","appData")).then(function(snap){
+    if(!snap.exists())return;
+    var d=snap.data();
+    // Apply each field to its setter if present
+    Object.keys(setters).forEach(function(k){
+      if(d[k]!==undefined){
+        try{localStorage.setItem("sf:"+k,JSON.stringify(d[k]));}catch(e){}
+        setters[k](d[k]);
+      }
+    });
+  }).catch(function(e){console.warn("Cloud pull failed:",e);});
 }
 
 // Check if first launch — if so skip straight to onboarding after login
@@ -755,7 +791,7 @@ function MainApp({initProfile}){
   var [coachInput,setCoachInput]=useState("");
   var [coachTyping,setCoachTyping]=useState(false);
   var coachEndRef=useRef(null);
-  var [claudeKey,setClaudeKey]=useState(function(){try{return localStorage.getItem("sf:claudeKey")||"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";}catch(e){return "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";}});
+  var [claudeKey,setClaudeKey]=useState(function(){try{return localStorage.getItem("sf:claudeKey")||"";}catch(e){return "";}});
   var [showKeyInput,setShowKeyInput]=useState(false);
   var [keyDraft,setKeyDraft]=useState("");
   var [expandedWorkout,setExpandedWorkout]=useState(null);
@@ -783,6 +819,45 @@ function MainApp({initProfile}){
   // ── New: last day stored (for midnight reset) ──
   var lastDayPair=usePersist("lastDay","");
   var lastDay=lastDayPair[0],setLastDay=lastDayPair[1];
+
+  // ── Cloud sync: listen for auth state, pull data from Firestore on sign-in ──
+  useEffect(function(){
+    if(!window.__FB)return;
+    var unsubscribe=window.__FB.onAuthStateChanged(window.__FB.auth,function(user){
+      if(user){
+        window.__sfUid=user.uid;
+        // Pull all persisted data from cloud and update state
+        pullCloudData(user.uid,{
+          profile:setProfile,
+          steps:setSteps,
+          hr:setHr,
+          darkMode:setDarkMode,
+          water:setWater,
+          planDone:setPlanDone,
+          workoutHistory:setWorkoutHistory,
+          downloadedMaps:setDownloadedMaps,
+          joinedChallenges:setJoinedChallenges,
+          dismissed:setDismissed,
+          deviceStates:setDeviceStates,
+          bpSys:setBpSys,
+          bpDia:setBpDia,
+          unit:setUnit,
+          dailyLogs:setDailyLogs,
+          streak:setStreak,
+          lastStreakDay:setLastStreakDay,
+          sleepLogs:setSleepLogs,
+          nutritionLogs:setNutritionLogs,
+          measureLogs:setMeasureLogs,
+          myChallenges:setMyChallenges,
+          weightLogs:setWeightLogs,
+          lastDay:setLastDay
+        });
+      } else {
+        window.__sfUid=null;
+      }
+    });
+    return function(){unsubscribe();};
+  },[]);
 
   // ── New: modal states ──
   const [showAddSteps,setShowAddSteps]=useState(false);
