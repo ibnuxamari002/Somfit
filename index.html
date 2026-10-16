@@ -109,6 +109,79 @@ function markOnboarded(){
   try{localStorage.setItem("sf:onboarded","1");}catch(e){}
 }
 
+// ── Language / i18n ──
+var LANGS={
+  en:{
+    code:"en",name:"English",dir:"ltr",
+    // Nav
+    home:"Home",workouts:"Workouts",health:"Health",social:"Social",profile:"Profile",
+    // Common
+    steps:"Steps",calories:"Calories",distance:"Distance",heart_rate:"Heart Rate",
+    water:"Water",sleep:"Sleep",weight:"Weight",streak:"Streak",
+    today:"Today",week:"Week",month:"Month",
+    save:"Save",cancel:"Cancel",done:"Done",add:"Add",edit:"Edit",delete:"Delete",
+    // Login
+    welcome_title:"Welcome to Som Fit",welcome_sub:"Your premium fitness companion",
+    sign_in_google:"Continue with Google",skip:"Skip for now",
+    // Dashboard
+    daily_goal:"Daily Goal",good_morning:"Good morning",good_afternoon:"Good afternoon",good_evening:"Good evening",
+    steps_today:"Steps Today",active_mins:"Active Minutes",
+    // Workouts
+    log_workout:"Log Workout",workout_history:"Workout History",start_workout:"Start Workout",
+    duration:"Duration",type:"Type",
+    // Health
+    blood_pressure:"Blood Pressure",nutrition:"Nutrition",measurements:"Measurements",
+    // Settings
+    settings:"Settings",dark_mode:"Dark Mode",language:"Language",units:"Units",
+    sign_out:"Sign Out",
+    // Onboarding
+    your_name:"Your Name",your_goal:"Daily Step Goal",choose_avatar:"Choose Avatar",
+    // Misc
+    ai_coach:"AI Coach",challenges:"Challenges",notifications:"Notifications",
+    no_data:"No data yet",days:"days",mins:"mins",km:"km",mi:"mi",
+    bpm:"bpm",kg:"kg",lbs:"lbs",glasses:"glasses",hours:"hours",
+    excellent:"Excellent",good:"Good",fair:"Fair",poor:"Poor"
+  },
+  so:{
+    code:"so",name:"Soomaali",dir:"ltr",
+    // Nav
+    home:"Guriga",workouts:"Jimicsiga",health:"Caafimaadka",social:"Bulshada",profile:"Xogta",
+    // Common
+    steps:"Tallaabooyinka",calories:"Kalooriyada",distance:"Masaafada",heart_rate:"Wadnahaaga",
+    water:"Biyo",sleep:"Hurdo",weight:"Miisaanka",streak:"Silsiladda",
+    today:"Maanta",week:"Toddobaadka",month:"Bilaha",
+    save:"Keydi",cancel:"Jooji",done:"Dhamee",add:"Kudar",edit:"Wax ka beddel",delete:"Tirtir",
+    // Login
+    welcome_title:"Ku soo dhawow Som Fit",welcome_sub:"Saaxiibkaaga caafimaadka",
+    sign_in_google:"Ku sii xiga Google",skip:"Kaliya dhaaf",
+    // Dashboard
+    daily_goal:"Bartilmaameedka Maalinlaha",good_morning:"Subax wanaagsan",good_afternoon:"Galab wanaagsan",good_evening:"Fiid wanaagsan",
+    steps_today:"Tallaabooyinka Maanta",active_mins:"Daqiiqadaha Firfircoon",
+    // Workouts
+    log_workout:"Diiwaan Jimics",workout_history:"Taariikhda Jimicsiga",start_workout:"Bilow Jimics",
+    duration:"Muddada",type:"Nooca",
+    // Health
+    blood_pressure:"Cadaadiska Dhiigga",nutrition:"Nafaqada",measurements:"Cabbirada",
+    // Settings
+    settings:"Goobaha",dark_mode:"Muuqaalka Madow",language:"Luqadda",units:"Cutubka",
+    sign_out:"Ka bax",
+    // Onboarding
+    your_name:"Magacaaga",your_goal:"Bartilmaameedka Tallaabooyinka",choose_avatar:"Dooro Muuqaalka",
+    // Misc
+    ai_coach:"Tababaraha AI",challenges:"Caqabadaha",notifications:"Ogeysiisyada",
+    no_data:"Wali xog ma jirto",days:"maalmo",mins:"daqiiqo",km:"km",mi:"mi",
+    bpm:"jm/d",kg:"kg",lbs:"ratan",glasses:"koob",hours:"saac",
+    excellent:"Heer sare",good:"Wanaagsan",fair:"Dhexdhexaad",poor:"Hooseeya"
+  }
+};
+function getLang(){
+  try{var l=localStorage.getItem("sf:lang");return(l&&LANGS[l])?l:"en";}catch(e){return"en";}
+}
+function setLangStorage(l){try{localStorage.setItem("sf:lang",l);}catch(e){}}
+// Global reactive language — components read window.__lang
+window.__lang=getLang();
+function T(key){return(LANGS[window.__lang]&&LANGS[window.__lang][key])||LANGS.en[key]||key;}
+
 var APP={dark:false}; // mutable theme ref read by shared components
 const C={bg:"#1565C0",card:"#1976D2",card2:"#1E88E5",border:"#2196F3",borderGlow:"#42A5F5",
   text:"#FFFFFF",muted:"#BBDEFB",dim:"#90CAF9",green:"#00F5A0",greenDark:"#00C880",
@@ -1098,7 +1171,7 @@ function MainApp({initProfile}){
 
         {/* Time */}
         <div style={{position:"relative",display:"flex",alignItems:"center",gap:5}}>
-          <span style={{fontSize:14,fontWeight:800,color:"#fff",letterSpacing:0.5}}>9:41</span>
+          <span style={{fontSize:14,fontWeight:800,color:"#fff",letterSpacing:0.5}}>{(function(){var n=new Date();return n.getHours().toString().padStart(2,"0")+":"+n.getMinutes().toString().padStart(2,"0");})()}</span>
           <div style={{display:"flex",gap:2,marginLeft:3}}>
             {[3,4,4,3].map(function(h,i){return <div key={i} style={{width:3,height:h+i*2,borderRadius:2,background:i<3?"rgba(255,255,255,0.9)":"rgba(255,255,255,0.3)"}}/>;})}
           </div>
@@ -3004,9 +3077,24 @@ function MainApp({initProfile}){
             })}
           </GlassCard>
           <GlassCard style={{padding:18}}>
-            <div style={{fontSize:12,color:C.muted,fontWeight:600,letterSpacing:0.5,marginBottom:12}}>⚙️ SETTINGS</div>
+            <div style={{fontSize:12,color:C.muted,fontWeight:600,letterSpacing:0.5,marginBottom:12}}>⚙️ {T("settings")}</div>
             <div style={{marginBottom:14}}>
-              <div style={{fontSize:12,color:C.dim,marginBottom:8}}>Distance Units</div>
+              <div style={{fontSize:12,color:C.dim,marginBottom:8}}>🌐 {T("language")}</div>
+              <div style={{display:"flex",background:"#1565C0",borderRadius:14,padding:4,gap:4,border:"1px solid "+C.border}}>
+                {Object.values(LANGS).map(function(lg){
+                  var active=window.__lang===lg.code;
+                  return <button key={lg.code} onClick={function(){
+                    window.__lang=lg.code;
+                    setLangStorage(lg.code);
+                    window.location.reload();
+                  }} style={{flex:1,padding:"11px",borderRadius:11,border:"none",cursor:"pointer",fontWeight:700,fontSize:12,background:active?G.cyan:"transparent",color:active?"#020A06":C.muted}}>
+                    {lg.code==="so"?"🇸🇴":lg.code==="en"?"🇬🇧":""} {lg.name}
+                  </button>;
+                })}
+              </div>
+            </div>
+            <div style={{marginBottom:14}}>
+              <div style={{fontSize:12,color:C.dim,marginBottom:8}}>{T("units")}</div>
               <div style={{display:"flex",background:"#1565C0",borderRadius:14,padding:4,gap:4,border:"1px solid "+C.border}}>
                 {[{v:"km",l:"Kilometers (km)"},{v:"mi",l:"Miles (mi)"}].map(function(u){
                   return <button key={u.v} onClick={function(){setUnit(u.v);}} style={{flex:1,padding:"11px",borderRadius:11,border:"none",cursor:"pointer",fontWeight:700,fontSize:12,background:unit===u.v?G.green:"transparent",color:unit===u.v?"#020A06":C.muted}}>{u.l}</button>;
