@@ -1773,7 +1773,7 @@ function MainApp({initProfile}){
             <div style={{fontSize:12,color:C.muted,fontWeight:600,letterSpacing:0.5,marginBottom:2}}>START WORKOUT</div>
             <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
               {[{icon:"🏃",label:"Running",grad:[C.green,C.cyan]},{icon:"🚴",label:"Cycling",grad:[C.cyan,C.blue]},{icon:"🚶",label:"Walking",grad:[C.purple,C.purpleLight]},{icon:"⚡",label:"HIIT",grad:[C.pink,C.amber]}].map(function(w,i){
-                return <button key={i} onClick={function(){setWorkout(w.label);}} style={{padding:"20px",borderRadius:20,border:"1px solid "+w.grad[0]+"44",background:"linear-gradient(135deg,"+w.grad[0]+"12,"+w.grad[1]+"08)",cursor:"pointer",textAlign:"center"}}>
+                return <button key={i} onClick={function(){setWorkout(w.label);setWTime(0);setGpsCoords([]);setGpsDist(0);setTab("track");}} style={{padding:"20px",borderRadius:20,border:"1px solid "+w.grad[0]+"44",background:"linear-gradient(135deg,"+w.grad[0]+"12,"+w.grad[1]+"08)",cursor:"pointer",textAlign:"center"}}>
                   <div style={{fontSize:36,marginBottom:8}}>{w.icon}</div>
                   <div style={{fontSize:14,fontWeight:700,background:"linear-gradient(90deg,"+w.grad[0]+","+w.grad[1]+")",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent"}}>{w.label}</div>
                 </button>;
