@@ -5,6 +5,8 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
 <title>Som Fit</title>
 <link rel="manifest" href="manifest.json">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <meta name="theme-color" content="#1565C0">
 <meta name="description" content="Som Fit — your premium fitness tracking app">
 <meta name="mobile-web-app-capable" content="yes">
@@ -860,11 +862,11 @@ function MainApp({initProfile}){
   var measureLogs=measureLogsPair[0],setMeasureLogs=measureLogsPair[1];
   var [motionGranted,setMotionGranted]=useState(false);
   var [showAddMeasure,setShowAddMeasure]=useState(false);
-  var [coachMsgs,setCoachMsgs]=useState([{role:"ai",text:"Hey! 👋 I'm your AI fitness coach. I can help with workout plans, nutrition, recovery, motivation — anything fitness. What's on your mind?"}]);
+  var [coachMsgs,setCoachMsgs]=useState([{role:"ai",text:"Hey! 👋 I'm your AI fitness coach powered by Gemini. I can help with workout plans, nutrition, recovery, motivation — anything fitness. What's on your mind?"}]);
   var [coachInput,setCoachInput]=useState("");
   var [coachTyping,setCoachTyping]=useState(false);
   var coachEndRef=useRef(null);
-  var [claudeKey,setClaudeKey]=useState(function(){try{return localStorage.getItem("sf:claudeKey")||"";}catch(e){return "";}});
+  var [geminiKey,setGeminiKey]=useState(function(){try{return localStorage.getItem("sf:geminiKey")||"";}catch(e){return "";}});
   var [showKeyInput,setShowKeyInput]=useState(false);
   var [keyDraft,setKeyDraft]=useState("");
   var [expandedWorkout,setExpandedWorkout]=useState(null);
@@ -976,35 +978,59 @@ function MainApp({initProfile}){
   APP.dark=darkMode; // sync for shared components
 
   // ── Real pedometer via DeviceMotion accelerometer ──
-  const pedometerRef=useRef({last:0,mag:0,step:false,count:0});
+  const pedometerRef=useRef({
+    gx:0,gy:0,gz:0,   // low-pass gravity estimate
+    prevMag:0,         // previous filtered magnitude
+    rising:false,      // are we on upswing?
+    lastStep:0,        // timestamp of last counted step
+    window:[],         // rolling magnitude buffer for dynamic threshold
+  });
   useEffect(function(){
-    var THRESHOLD=12; // acceleration magnitude threshold for step detection
-    var COOLDOWN=350; // ms min between steps
+    var ALPHA=0.8;        // low-pass filter coefficient (higher = smoother gravity)
+    var COOLDOWN=300;     // min ms between steps
+    var WINDOW_SIZE=20;   // samples for dynamic threshold
     function onMotion(e){
-      var acc=e.accelerationIncludingGravity||e.acceleration;
-      if(!acc) return;
-      var mag=Math.sqrt((acc.x||0)*(acc.x||0)+(acc.y||0)*(acc.y||0)+(acc.z||0)*(acc.z||0));
-      var now=Date.now();
+      var raw=e.accelerationIncludingGravity;
+      if(!raw) return;
+      var rx=raw.x||0, ry=raw.y||0, rz=raw.z||0;
       var ref=pedometerRef.current;
-      // Peak detection: crossing threshold upward then downward
-      if(mag>THRESHOLD&&!ref.step&&(now-ref.last)>COOLDOWN){
-        ref.step=true;
-        ref.last=now;
-        ref.count++;
+      // Update gravity estimate via low-pass filter
+      ref.gx=ALPHA*ref.gx+(1-ALPHA)*rx;
+      ref.gy=ALPHA*ref.gy+(1-ALPHA)*ry;
+      ref.gz=ALPHA*ref.gz+(1-ALPHA)*rz;
+      // Linear acceleration = raw - gravity
+      var ax=rx-ref.gx, ay=ry-ref.gy, az=rz-ref.gz;
+      var mag=Math.sqrt(ax*ax+ay*ay+az*az);
+      // Maintain rolling window for dynamic threshold
+      ref.window.push(mag);
+      if(ref.window.length>WINDOW_SIZE) ref.window.shift();
+      var avg=ref.window.reduce(function(a,b){return a+b;},0)/ref.window.length;
+      var dynThreshold=avg*1.4; // step peak must be 40% above rolling average
+      var minThreshold=1.5;     // absolute floor to ignore tiny vibrations
+      var threshold=Math.max(dynThreshold,minThreshold);
+      var now=Date.now();
+      // Peak detection: rising then falling above threshold
+      if(mag>ref.prevMag) {
+        ref.rising=true;
+      } else if(ref.rising&&ref.prevMag>threshold&&(now-ref.lastStep)>COOLDOWN){
+        // We just passed a peak above threshold — count it
+        ref.rising=false;
+        ref.lastStep=now;
         setSteps(function(s){return s+1;});
-      } else if(mag<THRESHOLD-4){
-        ref.step=false;
+      } else {
+        ref.rising=false;
       }
+      ref.prevMag=mag;
     }
     // Request permission on iOS 13+; auto-start on Android/others
     if(typeof DeviceMotionEvent!=="undefined"&&typeof DeviceMotionEvent.requestPermission==="function"){
       // iOS — need explicit user tap; started by the banner button
     } else if(typeof DeviceMotionEvent!=="undefined"){
-      window.addEventListener("devicemotion",onMotion);
+      window.addEventListener("devicemotion",onMotion,{passive:true});
       setMotionGranted(true);
     }
     window._somfitStartPedometer=function(){
-      window.addEventListener("devicemotion",onMotion);
+      window.addEventListener("devicemotion",onMotion,{passive:true});
       setMotionGranted(true);
     };
     // HR stays simulated (no sensor access in browser)
@@ -1607,92 +1633,116 @@ function MainApp({initProfile}){
                   </div>
                 );
               })()}
-              {/* Real GPS Map */}
+              {/* Real Leaflet GPS Map */}
               {(function(){
-                var W=360,H=140;
-                // Project GPS coords to SVG pixels
-                var pts=gpsCoords;
-                var svgPts=[];
-                if(pts.length>=2){
-                  var lats=pts.map(function(p){return p.lat;});
-                  var lngs=pts.map(function(p){return p.lng;});
-                  var minLat=Math.min.apply(null,lats),maxLat=Math.max.apply(null,lats);
-                  var minLng=Math.min.apply(null,lngs),maxLng=Math.max.apply(null,lngs);
-                  var padX=20,padY=16;
-                  var spanLat=maxLat-minLat||0.0001;
-                  var spanLng=maxLng-minLng||0.0001;
-                  // Keep aspect ratio
-                  var scaleX=(W-padX*2)/spanLng;
-                  var scaleY=(H-padY*2)/spanLat;
-                  var scale=Math.min(scaleX,scaleY);
-                  var offX=padX+(W-padX*2-(spanLng*scale))/2;
-                  var offY=padY+(H-padY*2-(spanLat*scale))/2;
-                  svgPts=pts.map(function(p){
-                    return {x:offX+(p.lng-minLng)*scale,y:H-offY-(p.lat-minLat)*scale};
-                  });
-                }
-                var dot=svgPts.length>0?svgPts[svgPts.length-1]:{x:W/2,y:H/2};
-                var polyStr=svgPts.map(function(p){return p.x+","+p.y;}).join(" ");
                 var isTracking=gpsStatus==="tracking";
                 var statusColor=isTracking?C.green:gpsStatus==="acquiring"?C.amber:C.red;
                 var statusLabel=isTracking?"LIVE GPS":gpsStatus==="acquiring"?"ACQUIRING…":"GPS ERROR";
-                return(
-                  <div style={{borderRadius:16,height:H,background:"linear-gradient(160deg,#071A0E,#0A1628)",border:"1px solid "+statusColor+"33",marginBottom:14,position:"relative",overflow:"hidden"}}>
-                    {/* Grid */}
-                    <svg width="100%" height="100%" style={{position:"absolute",inset:0,opacity:0.07}}>
-                      {[0,1,2,3].map(function(i){return <line key={"h"+i} x1="0" y1={i*35+10} x2={W} y2={i*35+10} stroke={C.green} strokeWidth="1"/>;})}
-                      {[0,1,2,3,4].map(function(i){return <line key={"v"+i} x1={i*72+18} y1="0" x2={i*72+18} y2={H} stroke={C.green} strokeWidth="1"/>;})}
-                    </svg>
+                var mapDivId="sfLeafletMap";
 
-                    {/* Acquiring / error state overlay */}
+                // Initialize or update Leaflet map
+                useEffect(function(){
+                  if(typeof window.L==="undefined") return;
+                  var container=document.getElementById(mapDivId);
+                  if(!container) return;
+
+                  // Create map once
+                  if(!window._sfMap){
+                    window._sfMap=window.L.map(mapDivId,{
+                      zoomControl:false,
+                      attributionControl:true,
+                      dragging:false,
+                      scrollWheelZoom:false,
+                      doubleClickZoom:false,
+                      boxZoom:false,
+                      keyboard:false,
+                      tap:false,
+                    });
+                    window.L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",{
+                      attribution:'© <a href="https://www.openstreetmap.org/copyright">OSM</a>',
+                      maxZoom:19,
+                    }).addTo(window._sfMap);
+                    // Cyan route polyline
+                    window._sfRouteLine=window.L.polyline([],{color:"#00E5FF",weight:4,opacity:0.9,lineJoin:"round"}).addTo(window._sfMap);
+                    // Position marker (custom pulsing icon via divIcon)
+                    var icon=window.L.divIcon({
+                      className:"",
+                      html:'<div style="width:18px;height:18px;border-radius:50%;background:#00E676;border:3px solid #fff;box-shadow:0 0 0 6px rgba(0,230,118,0.25);"></div>',
+                      iconSize:[18,18],iconAnchor:[9,9]
+                    });
+                    window._sfPosMarker=window.L.marker([0,0],{icon:icon});
+                    // Start marker
+                    var startIcon=window.L.divIcon({
+                      className:"",
+                      html:'<div style="width:12px;height:12px;border-radius:50%;background:#00E5FF;border:2px solid #fff;"></div>',
+                      iconSize:[12,12],iconAnchor:[6,6]
+                    });
+                    window._sfStartMarker=window.L.marker([0,0],{icon:startIcon});
+                  }
+                  var map=window._sfMap;
+                  // Resize in case container changed
+                  setTimeout(function(){map.invalidateSize();},100);
+
+                  // Update route
+                  if(gpsCoords.length>0){
+                    var latLngs=gpsCoords.map(function(p){return[p.lat,p.lng];});
+                    window._sfRouteLine.setLatLngs(latLngs);
+                    var last=latLngs[latLngs.length-1];
+
+                    // Move position marker
+                    window._sfPosMarker.setLatLng(last);
+                    if(!map.hasLayer(window._sfPosMarker)) window._sfPosMarker.addTo(map);
+
+                    // Place start marker
+                    if(gpsCoords.length===1||!map.hasLayer(window._sfStartMarker)){
+                      window._sfStartMarker.setLatLng(latLngs[0]);
+                      if(!map.hasLayer(window._sfStartMarker)) window._sfStartMarker.addTo(map);
+                    }
+
+                    // Follow position
+                    map.setView(last,17);
+                  } else {
+                    // No fix yet — try to get a default location
+                    if(navigator.geolocation){
+                      navigator.geolocation.getCurrentPosition(function(pos){
+                        map.setView([pos.coords.latitude,pos.coords.longitude],15);
+                      },function(){
+                        map.setView([51.505,-0.09],13);
+                      },{timeout:4000});
+                    }
+                  }
+                },[gpsCoords,gpsStatus]);
+
+                // Cleanup map on unmount
+                useEffect(function(){
+                  return function(){
+                    if(window._sfMap){window._sfMap.remove();window._sfMap=null;window._sfRouteLine=null;window._sfPosMarker=null;window._sfStartMarker=null;}
+                  };
+                },[]);
+
+                return(
+                  <div style={{borderRadius:16,height:200,border:"1px solid "+statusColor+"44",marginBottom:14,position:"relative",overflow:"hidden"}}>
+                    <div id={mapDivId} style={{width:"100%",height:"100%"}}/>
+
+                    {/* Overlay when GPS not ready */}
                     {gpsStatus!=="tracking"&&(
-                      <div style={{position:"absolute",inset:0,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:6}}>
-                        {gpsStatus==="acquiring"&&<div style={{fontSize:22,animation:"proPulse 1.2s ease-in-out infinite"}}>📡</div>}
-                        {gpsStatus==="denied"&&<div style={{fontSize:22}}>🚫</div>}
-                        <div style={{fontSize:11,color:statusColor,fontWeight:700,textAlign:"center",padding:"0 20px"}}>{gpsErr||"Waiting for GPS signal…"}</div>
-                        {gpsStatus==="denied"&&<div style={{fontSize:10,color:C.muted,textAlign:"center",padding:"0 24px"}}>Allow location in browser settings then restart workout</div>}
+                      <div style={{position:"absolute",inset:0,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:6,background:"rgba(0,0,0,0.45)",borderRadius:16,zIndex:1000}}>
+                        {gpsStatus==="acquiring"&&<div style={{fontSize:28,animation:"proPulse 1.2s ease-in-out infinite"}}>📡</div>}
+                        {gpsStatus==="denied"&&<div style={{fontSize:28}}>🚫</div>}
+                        <div style={{fontSize:12,color:statusColor,fontWeight:700,textAlign:"center",padding:"0 20px"}}>{gpsErr||"Waiting for GPS signal…"}</div>
+                        {gpsStatus==="denied"&&<div style={{fontSize:10,color:"#ccc",textAlign:"center",padding:"0 24px"}}>Allow location in browser settings then restart workout</div>}
                       </div>
                     )}
 
-                    {/* Route polyline */}
-                    {svgPts.length>=2&&(
-                      <svg width="100%" height="100%" viewBox={"0 0 "+W+" "+H} style={{position:"absolute",inset:0}}>
-                        <defs>
-                          <linearGradient id="gpsGrad" x1="0%" y1="0%" x2="100%" y2="0%">
-                            <stop offset="0%" stopColor={C.cyan} stopOpacity="0.7"/>
-                            <stop offset="100%" stopColor={C.green}/>
-                          </linearGradient>
-                        </defs>
-                        <polyline points={polyStr} fill="none" stroke="url(#gpsGrad)" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"/>
-                        {/* Start dot */}
-                        <circle cx={svgPts[0].x} cy={svgPts[0].y} r="5" fill={C.cyan} opacity="0.9"/>
-                      </svg>
-                    )}
-
-                    {/* Live position dot */}
-                    {isTracking&&(
-                      <svg width="100%" height="100%" viewBox={"0 0 "+W+" "+H} style={{position:"absolute",inset:0}}>
-                        <circle cx={dot.x} cy={dot.y} r="16" fill={C.green} opacity="0.12">
-                          <animate attributeName="r" values="12;20;12" dur="1.8s" repeatCount="indefinite"/>
-                          <animate attributeName="opacity" values="0.12;0.04;0.12" dur="1.8s" repeatCount="indefinite"/>
-                        </circle>
-                        <circle cx={dot.x} cy={dot.y} r="5" fill={C.green} opacity="0.5">
-                          <animate attributeName="r" values="4;7;4" dur="1.8s" repeatCount="indefinite"/>
-                        </circle>
-                        <circle cx={dot.x} cy={dot.y} r="4" fill={C.green}/>
-                        <circle cx={dot.x} cy={dot.y} r="2" fill="#fff"/>
-                      </svg>
-                    )}
-
                     {/* Status badge */}
-                    <div style={{position:"absolute",top:10,right:12,display:"flex",alignItems:"center",gap:5,background:"rgba(0,0,0,0.6)",borderRadius:10,padding:"3px 8px",border:"1px solid "+statusColor+"44"}}>
-                      <div style={{width:6,height:6,borderRadius:"50%",background:statusColor,boxShadow:"0 0 6px "+statusColor,animation:isTracking?"proPulse 1.2s ease-in-out infinite":"none"}}/>
+                    <div style={{position:"absolute",top:10,right:12,display:"flex",alignItems:"center",gap:5,background:"rgba(0,0,0,0.65)",borderRadius:10,padding:"4px 9px",border:"1px solid "+statusColor+"55",zIndex:1000}}>
+                      <div style={{width:7,height:7,borderRadius:"50%",background:statusColor,boxShadow:"0 0 6px "+statusColor,animation:isTracking?"proPulse 1.2s ease-in-out infinite":"none"}}/>
                       <span style={{fontSize:9,fontWeight:900,color:statusColor,letterSpacing:1.5}}>{statusLabel}</span>
                     </div>
 
-                    {/* Real distance */}
-                    <div style={{position:"absolute",bottom:8,left:12,fontSize:10,color:C.green,fontWeight:700,opacity:0.85}}>
-                      {(gpsDist/1000).toFixed(3)} km · {gpsCoords.length} pts
+                    {/* Distance badge */}
+                    <div style={{position:"absolute",bottom:10,left:12,background:"rgba(0,0,0,0.65)",borderRadius:8,padding:"3px 8px",zIndex:1000}}>
+                      <span style={{fontSize:10,color:C.green,fontWeight:700}}>{(gpsDist/1000).toFixed(3)} km · {gpsCoords.length} pts</span>
                     </div>
                   </div>
                 );
@@ -3109,6 +3159,65 @@ function MainApp({initProfile}){
               </div>
               <div style={{fontSize:12,color:C.muted}}>✏️</div>
             </div>
+            {/* Sign In / Sign Out */}
+            {(function(){
+              var uid=window.__sfUid;
+              var cached=null;
+              try{var s=localStorage.getItem("sf:googleUser");if(s)cached=JSON.parse(s);}catch(e){}
+              var isSignedIn=!!uid||!!cached;
+              var displayName=isSignedIn?(uid?((cached&&cached.name)||"Signed in"):(cached&&cached.name)||"Signed in"):"Not signed in";
+              var displayEmail=cached&&cached.email?cached.email:"";
+              if(isSignedIn){
+                return <div style={{marginBottom:14}}>
+                  <div style={{display:"flex",alignItems:"center",gap:10,padding:"10px 12px",borderRadius:14,background:C.green+"0A",border:"1px solid "+C.green+"33",marginBottom:10}}>
+                    <div style={{fontSize:20}}>✅</div>
+                    <div style={{flex:1}}>
+                      <div style={{fontSize:12,fontWeight:700,color:C.green}}>{displayName}</div>
+                      {displayEmail?<div style={{fontSize:10,color:C.muted}}>{displayEmail}</div>:null}
+                    </div>
+                  </div>
+                  <button onClick={function(){
+                    if(window.__FB&&window.__FB.auth){window.__FB.signOut(window.__FB.auth).catch(function(){});}
+                    window.__sfUid=null;
+                    try{localStorage.removeItem("sf:googleUser");}catch(e){}
+                    window.location.reload();
+                  }} style={{width:"100%",padding:"12px",borderRadius:14,border:"1px solid "+C.red+"44",background:C.red+"0A",color:C.red,fontSize:13,fontWeight:700,cursor:"pointer"}}>
+                    🚪 {T("sign_out")}
+                  </button>
+                </div>;
+              } else {
+                return <div style={{marginBottom:14}}>
+                  <div style={{fontSize:12,color:C.dim,marginBottom:8}}>☁️ Cloud Sync</div>
+                  <div style={{fontSize:11,color:C.muted,marginBottom:10}}>Sign in to sync your data across devices</div>
+                  <div id="gsignin-settings" style={{display:"flex",justifyContent:"center"}}/>
+                  {(function(){
+                    useEffect(function(){
+                      function tryInit(){
+                        if(!window.__FB||!window.google||!window.google.accounts){setTimeout(tryInit,400);return;}
+                        var el=document.getElementById("gsignin-settings");
+                        if(!el||el.dataset.init) return;
+                        el.dataset.init="1";
+                        window.google.accounts.id.initialize({
+                          client_id:"824322486194-mhm0bphtf267bdf3tj22ehqck9lj9p3v.apps.googleusercontent.com",
+                          callback:function(response){
+                            var cred=window.__FB.GoogleAuthProvider.credential(response.credential);
+                            window.__FB.signInWithCredential(window.__FB.auth,cred).then(function(r){
+                              var user=r.user;
+                              window.__sfUid=user.uid;
+                              try{localStorage.setItem("sf:googleUser",JSON.stringify({name:user.displayName,email:user.email,avatar:user.photoURL,uid:user.uid}));}catch(e){}
+                              window.location.reload();
+                            });
+                          }
+                        });
+                        window.google.accounts.id.renderButton(el,{theme:"filled_blue",size:"large",shape:"pill",text:"signin_with"});
+                      }
+                      tryInit();
+                    },[]);
+                    return null;
+                  })()}
+                </div>;
+              }
+            })()}
             <button onClick={function(){
               if(!confirm("Reset all app data? This clears your steps, history, profile and progress."))return;
               try{
@@ -3134,28 +3243,36 @@ function MainApp({initProfile}){
           setCoachInput("");
           setCoachTyping(true);
           setTimeout(function(){if(coachEndRef.current)coachEndRef.current.scrollIntoView({behavior:"smooth"});},60);
-          var key=claudeKey;
+          // Build Gemini conversation history
+          var systemPrompt="You are an expert personal fitness coach inside the Som Fit app. The user's name is "+(profile.name||"there")+". Their stats: weight "+(profile.weight||"?")+"kg, height "+(profile.height||"?")+"cm, age "+(profile.age||"?")+" years, goal: "+(profile.goal||"general fitness")+". Be concise, practical and motivating. Use emojis sparingly. Format key points clearly. Keep replies under 200 words unless a detailed plan is requested.";
+          var geminiContents=updatedMsgs.map(function(m){
+            return {role:m.role==="ai"?"model":"user",parts:[{text:m.text}]};
+          });
+          // Prepend system context as first user turn if not already
+          var contents=[{role:"user",parts:[{text:systemPrompt}]},{role:"model",parts:[{text:"Understood! I'm ready to help as your personal fitness coach."}]}].concat(geminiContents);
+          var key=geminiKey;
           if(!key){
             setCoachTyping(false);
-            setCoachMsgs(function(prev){return prev.concat([{role:"ai",text:"⚠️ No API key set. Tap the **🔑 key icon** in the top right to add your Claude API key."}]);});
+            setCoachMsgs(function(prev){return prev.concat([{role:"ai",text:"⚠️ No API key set. Tap the **🔑** button in the top right to add your Gemini API key."}]);});
             return;
           }
-          // Build messages for Claude API
-          var systemPrompt="You are an expert personal fitness coach inside the Som Fit app. The user's name is "+profile.name+". Be concise, practical, motivating. Use emojis sparingly. Format with **bold** for key points. Keep replies under 200 words unless a detailed plan is asked for.";
-          var apiMsgs=updatedMsgs.filter(function(m){return m.role==="user"||m.role==="ai";}).map(function(m){return {role:m.role==="ai"?"assistant":"user",content:m.text};});
-          fetch("https://api.anthropic.com/v1/messages",{
+          fetch("https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key="+key,{
             method:"POST",
-            headers:{"Content-Type":"application/json","x-api-key":key,"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},
-            body:JSON.stringify({model:"claude-haiku-4-5",max_tokens:512,system:systemPrompt,messages:apiMsgs})
+            headers:{"Content-Type":"application/json"},
+            body:JSON.stringify({contents:contents,generationConfig:{maxOutputTokens:512,temperature:0.7}})
           }).then(function(r){return r.json();}).then(function(data){
             setCoachTyping(false);
-            var reply=(data.content&&data.content[0]&&data.content[0].text)||"Sorry, I couldn't get a response. Please try again.";
-            if(data.error) reply="❌ API Error: "+data.error.message;
+            var reply="Sorry, I couldn't get a response. Please try again.";
+            if(data.candidates&&data.candidates[0]&&data.candidates[0].content&&data.candidates[0].content.parts&&data.candidates[0].content.parts[0]){
+              reply=data.candidates[0].content.parts[0].text;
+            } else if(data.error){
+              reply="❌ Error: "+data.error.message;
+            }
             setCoachMsgs(function(prev){return prev.concat([{role:"ai",text:reply}]);});
             setTimeout(function(){if(coachEndRef.current)coachEndRef.current.scrollIntoView({behavior:"smooth"});},80);
           }).catch(function(err){
             setCoachTyping(false);
-            setCoachMsgs(function(prev){return prev.concat([{role:"ai",text:"❌ Network error. Check your connection and API key, then try again."}]);});
+            setCoachMsgs(function(prev){return prev.concat([{role:"ai",text:"❌ Network error. Check your connection and try again."}]);});
           });
         }
         return <div style={{display:"flex",flexDirection:"column",height:"calc(100vh - 130px)",gap:0}}>
@@ -3166,28 +3283,26 @@ function MainApp({initProfile}){
                 <div style={{width:46,height:46,borderRadius:15,background:"linear-gradient(135deg,#CE93D8,#AB47BC)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:22,boxShadow:"0 4px 16px rgba(206,147,216,0.4)"}}>🤖</div>
                 <div style={{flex:1}}>
                   <div style={{fontWeight:900,fontSize:15,background:"linear-gradient(135deg,#CE93D8,#E1BEE7)",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent"}}>AI Coach</div>
-                  <div style={{fontSize:11,fontWeight:600,color:claudeKey?C.green:C.amber}}>{claudeKey?"● Connected · Claude AI":"○ No API key · tap 🔑 to connect"}</div>
+                  <div style={{fontSize:11,fontWeight:600,color:geminiKey?C.green:C.amber}}>{geminiKey?"● Connected · Gemini AI":"○ Tap 🔑 to connect Gemini"}</div>
                 </div>
-                <button onClick={function(){setShowKeyInput(function(v){return !v;});setKeyDraft(claudeKey);}} style={{width:36,height:36,borderRadius:11,border:"1px solid rgba(206,147,216,0.4)",background:"rgba(206,147,216,0.12)",fontSize:18,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>🔑</button>
+                <button onClick={function(){setShowKeyInput(function(v){return !v;});setKeyDraft(geminiKey);}} style={{width:36,height:36,borderRadius:11,border:"1px solid rgba(206,147,216,0.4)",background:"rgba(206,147,216,0.12)",fontSize:18,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>🔑</button>
               </div>
-              {/* API key input panel */}
+              {/* Gemini key input panel */}
               {showKeyInput&&<div style={{marginTop:12,paddingTop:12,borderTop:"1px solid rgba(206,147,216,0.2)"}}>
-                <div style={{fontSize:11,color:C.muted,marginBottom:8}}>Paste your <strong style={{color:C.purpleLight}}>Anthropic API key</strong> from console.anthropic.com</div>
+                <div style={{fontSize:11,color:C.muted,marginBottom:8}}>Paste your <strong style={{color:"#CE93D8"}}>Gemini API key</strong> from <span style={{color:C.cyan}}>aistudio.google.com/app/apikey</span></div>
                 <div style={{display:"flex",gap:8}}>
-                  <input value={keyDraft} onChange={function(e){setKeyDraft(e.target.value);}} placeholder="sk-ant-..." type="password" style={{flex:1,padding:"9px 12px",borderRadius:11,border:"1px solid rgba(206,147,216,0.35)",background:"rgba(0,0,0,0.25)",color:C.text,fontSize:12,outline:"none",fontFamily:"monospace"}}/>
+                  <input value={keyDraft} onChange={function(e){setKeyDraft(e.target.value);}} placeholder="AQ. or AIzaSy..." type="password" style={{flex:1,padding:"9px 12px",borderRadius:11,border:"1px solid rgba(206,147,216,0.35)",background:"rgba(0,0,0,0.25)",color:C.text,fontSize:12,outline:"none",fontFamily:"monospace"}}/>
                   <button onClick={function(){
-                    try{localStorage.setItem("sf:claudeKey",keyDraft);}catch(e){}
-                    setClaudeKey(keyDraft);
+                    var k=keyDraft.trim();
+                    try{if(k)localStorage.setItem("sf:geminiKey",k);else localStorage.removeItem("sf:geminiKey");}catch(e){}
+                    setGeminiKey(k);
                     setShowKeyInput(false);
-                    if(keyDraft){
-                      setCoachMsgs([{role:"ai",text:"🎉 Claude AI connected! I'm your real AI fitness coach now, "+profile.name+". Ask me anything about training, nutrition, recovery — I'll give you personalized advice!"}]);
-                    }
+                    if(k) setCoachMsgs([{role:"ai",text:"🎉 Gemini AI connected! I'm your fitness coach now, "+(profile.name||"champ")+". Ask me anything about training, nutrition, or recovery!"}]);
                   }} style={{padding:"9px 14px",borderRadius:11,border:"none",background:"linear-gradient(135deg,#CE93D8,#AB47BC)",color:"#fff",fontSize:12,fontWeight:800,cursor:"pointer"}}>Save</button>
-                  {claudeKey&&<button onClick={function(){
-                    try{localStorage.removeItem("sf:claudeKey");}catch(e){}
-                    setClaudeKey("");setKeyDraft("");setShowKeyInput(false);
-                    setCoachMsgs([{role:"ai",text:"API key removed. Add a key to use real Claude AI."}]);
-                  }} style={{padding:"9px 12px",borderRadius:11,border:"1px solid "+C.red+"44",background:C.red+"11",color:C.red,fontSize:12,fontWeight:700,cursor:"pointer"}}>Remove</button>}
+                  {geminiKey&&<button onClick={function(){
+                    try{localStorage.removeItem("sf:geminiKey");}catch(e){}
+                    setGeminiKey("");setKeyDraft("");setShowKeyInput(false);
+                  }} style={{padding:"9px 12px",borderRadius:11,border:"1px solid "+C.red+"44",background:C.red+"11",color:C.red,fontSize:12,fontWeight:700,cursor:"pointer"}}>✕</button>}
                 </div>
               </div>}
             </GlassCard>
@@ -3892,10 +4007,9 @@ function MainApp({initProfile}){
 function SomFit(){
   const [screen,setScreen]=useState("splash");
   const [initProfile,setInitProfile]=useState(null);
-  // After onboarding once, skip straight from login → app
   var returning=getHasOnboarded();
-  if(screen==="splash") return <SplashScreen onDone={function(){setScreen("login");}}/>;
-  if(screen==="login") return <LoginScreen onDone={function(){setScreen(returning?"app":"profile");}}/>;
+  // Splash → skip login entirely → go straight to app (or onboarding on first run)
+  if(screen==="splash") return <SplashScreen onDone={function(){setScreen(returning?"app":"profile");}}/>;
   if(screen==="profile") return <ProfileScreen onDone={function(p){setInitProfile(p);setScreen("permissions");}}/>;
   if(screen==="permissions") return <PermissionsScreen onDone={function(){setScreen("app");}}/>;
   return <MainApp initProfile={initProfile}/>;
