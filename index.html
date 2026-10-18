@@ -1081,8 +1081,8 @@ function MainApp({initProfile}){
           var dLng=(newPt.lng-last.lng)*Math.PI/180;
           var a=Math.sin(dLat/2)*Math.sin(dLat/2)+Math.cos(last.lat*Math.PI/180)*Math.cos(newPt.lat*Math.PI/180)*Math.sin(dLng/2)*Math.sin(dLng/2);
           var seg=R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));
-          // Ignore jitter (< 3 m or accuracy worse than 40 m)
-          if(seg<3||pos.coords.accuracy>40) return prev;
+          // Ignore jitter (< 10 m or accuracy worse than 20 m)
+          if(seg<10||pos.coords.accuracy>20) return prev;
           setGpsDist(function(d){return d+seg;});
           return prev.concat([newPt]);
         });
