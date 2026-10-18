@@ -1096,6 +1096,65 @@ function MainApp({initProfile}){
     return function(){navigator.geolocation.clearWatch(watchId);};
   },[workout]);
 
+  // Leaflet map — initialize/update (must be at top level, not inside IIFE)
+  useEffect(function(){
+    if(!workout) return;
+    if(typeof window.L==="undefined") return;
+    var container=document.getElementById("sfLeafletMap");
+    if(!container) return;
+    if(!window._sfMap){
+      window._sfMap=window.L.map("sfLeafletMap",{zoomControl:false,attributionControl:true,dragging:false,scrollWheelZoom:false,doubleClickZoom:false,boxZoom:false,keyboard:false,tap:false});
+      window.L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",{attribution:'© <a href="https://www.openstreetmap.org/copyright">OSM</a>',maxZoom:19}).addTo(window._sfMap);
+      window._sfRouteLine=window.L.polyline([],{color:"#00E5FF",weight:4,opacity:0.9,lineJoin:"round"}).addTo(window._sfMap);
+      var icon=window.L.divIcon({className:"",html:'<div style="width:18px;height:18px;border-radius:50%;background:#00E676;border:3px solid #fff;box-shadow:0 0 0 6px rgba(0,230,118,0.25);"></div>',iconSize:[18,18],iconAnchor:[9,9]});
+      window._sfPosMarker=window.L.marker([0,0],{icon:icon});
+      var startIcon=window.L.divIcon({className:"",html:'<div style="width:12px;height:12px;border-radius:50%;background:#00E5FF;border:2px solid #fff;"></div>',iconSize:[12,12],iconAnchor:[6,6]});
+      window._sfStartMarker=window.L.marker([0,0],{icon:startIcon});
+    }
+    var map=window._sfMap;
+    setTimeout(function(){map.invalidateSize();},100);
+    if(gpsCoords.length>0){
+      var latLngs=gpsCoords.map(function(p){return[p.lat,p.lng];});
+      window._sfRouteLine.setLatLngs(latLngs);
+      var last=latLngs[latLngs.length-1];
+      window._sfPosMarker.setLatLng(last);
+      if(!map.hasLayer(window._sfPosMarker)) window._sfPosMarker.addTo(map);
+      if(gpsCoords.length===1||!map.hasLayer(window._sfStartMarker)){window._sfStartMarker.setLatLng(latLngs[0]);if(!map.hasLayer(window._sfStartMarker)) window._sfStartMarker.addTo(map);}
+      map.setView(last,17);
+    } else {
+      if(navigator.geolocation){navigator.geolocation.getCurrentPosition(function(pos){map.setView([pos.coords.latitude,pos.coords.longitude],15);},function(){map.setView([2.046,45.341],13);},{timeout:4000});}
+    }
+  },[workout,gpsCoords,gpsStatus]);
+
+  // Leaflet map cleanup
+  useEffect(function(){
+    return function(){if(window._sfMap){window._sfMap.remove();window._sfMap=null;window._sfRouteLine=null;window._sfPosMarker=null;window._sfStartMarker=null;}};
+  },[]);
+
+  // Google Sign-In button init for settings panel (top-level, not inside IIFE)
+  useEffect(function(){
+    function tryInitGSI(){
+      if(!window.__FB||!window.google||!window.google.accounts){setTimeout(tryInitGSI,400);return;}
+      var el=document.getElementById("gsignin-settings");
+      if(!el||el.dataset.init) return;
+      el.dataset.init="1";
+      window.google.accounts.id.initialize({
+        client_id:"824322486194-mhm0bphtf267bdf3tj22ehqck9lj9p3v.apps.googleusercontent.com",
+        callback:function(response){
+          var cred=window.__FB.GoogleAuthProvider.credential(response.credential);
+          window.__FB.signInWithCredential(window.__FB.auth,cred).then(function(r){
+            var user=r.user;
+            window.__sfUid=user.uid;
+            try{localStorage.setItem("sf:googleUser",JSON.stringify({name:user.displayName,email:user.email,avatar:user.photoURL,uid:user.uid}));}catch(e){}
+            window.location.reload();
+          });
+        }
+      });
+      window.google.accounts.id.renderButton(el,{theme:"filled_blue",size:"large",shape:"pill",text:"signin_with"});
+    }
+    tryInitGSI();
+  },[]);
+
   // Interval timer countdown
   useEffect(function(){
     if(itMode==="idle"||itMode==="done") return;
@@ -1638,93 +1697,9 @@ function MainApp({initProfile}){
                 var isTracking=gpsStatus==="tracking";
                 var statusColor=isTracking?C.green:gpsStatus==="acquiring"?C.amber:C.red;
                 var statusLabel=isTracking?"LIVE GPS":gpsStatus==="acquiring"?"ACQUIRING…":"GPS ERROR";
-                var mapDivId="sfLeafletMap";
-
-                // Initialize or update Leaflet map
-                useEffect(function(){
-                  if(typeof window.L==="undefined") return;
-                  var container=document.getElementById(mapDivId);
-                  if(!container) return;
-
-                  // Create map once
-                  if(!window._sfMap){
-                    window._sfMap=window.L.map(mapDivId,{
-                      zoomControl:false,
-                      attributionControl:true,
-                      dragging:false,
-                      scrollWheelZoom:false,
-                      doubleClickZoom:false,
-                      boxZoom:false,
-                      keyboard:false,
-                      tap:false,
-                    });
-                    window.L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",{
-                      attribution:'© <a href="https://www.openstreetmap.org/copyright">OSM</a>',
-                      maxZoom:19,
-                    }).addTo(window._sfMap);
-                    // Cyan route polyline
-                    window._sfRouteLine=window.L.polyline([],{color:"#00E5FF",weight:4,opacity:0.9,lineJoin:"round"}).addTo(window._sfMap);
-                    // Position marker (custom pulsing icon via divIcon)
-                    var icon=window.L.divIcon({
-                      className:"",
-                      html:'<div style="width:18px;height:18px;border-radius:50%;background:#00E676;border:3px solid #fff;box-shadow:0 0 0 6px rgba(0,230,118,0.25);"></div>',
-                      iconSize:[18,18],iconAnchor:[9,9]
-                    });
-                    window._sfPosMarker=window.L.marker([0,0],{icon:icon});
-                    // Start marker
-                    var startIcon=window.L.divIcon({
-                      className:"",
-                      html:'<div style="width:12px;height:12px;border-radius:50%;background:#00E5FF;border:2px solid #fff;"></div>',
-                      iconSize:[12,12],iconAnchor:[6,6]
-                    });
-                    window._sfStartMarker=window.L.marker([0,0],{icon:startIcon});
-                  }
-                  var map=window._sfMap;
-                  // Resize in case container changed
-                  setTimeout(function(){map.invalidateSize();},100);
-
-                  // Update route
-                  if(gpsCoords.length>0){
-                    var latLngs=gpsCoords.map(function(p){return[p.lat,p.lng];});
-                    window._sfRouteLine.setLatLngs(latLngs);
-                    var last=latLngs[latLngs.length-1];
-
-                    // Move position marker
-                    window._sfPosMarker.setLatLng(last);
-                    if(!map.hasLayer(window._sfPosMarker)) window._sfPosMarker.addTo(map);
-
-                    // Place start marker
-                    if(gpsCoords.length===1||!map.hasLayer(window._sfStartMarker)){
-                      window._sfStartMarker.setLatLng(latLngs[0]);
-                      if(!map.hasLayer(window._sfStartMarker)) window._sfStartMarker.addTo(map);
-                    }
-
-                    // Follow position
-                    map.setView(last,17);
-                  } else {
-                    // No fix yet — try to get a default location
-                    if(navigator.geolocation){
-                      navigator.geolocation.getCurrentPosition(function(pos){
-                        map.setView([pos.coords.latitude,pos.coords.longitude],15);
-                      },function(){
-                        map.setView([51.505,-0.09],13);
-                      },{timeout:4000});
-                    }
-                  }
-                },[gpsCoords,gpsStatus]);
-
-                // Cleanup map on unmount
-                useEffect(function(){
-                  return function(){
-                    if(window._sfMap){window._sfMap.remove();window._sfMap=null;window._sfRouteLine=null;window._sfPosMarker=null;window._sfStartMarker=null;}
-                  };
-                },[]);
-
                 return(
                   <div style={{borderRadius:16,height:200,border:"1px solid "+statusColor+"44",marginBottom:14,position:"relative",overflow:"hidden"}}>
-                    <div id={mapDivId} style={{width:"100%",height:"100%"}}/>
-
-                    {/* Overlay when GPS not ready */}
+                    <div id="sfLeafletMap" style={{width:"100%",height:"100%"}}/>
                     {gpsStatus!=="tracking"&&(
                       <div style={{position:"absolute",inset:0,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:6,background:"rgba(0,0,0,0.45)",borderRadius:16,zIndex:1000}}>
                         {gpsStatus==="acquiring"&&<div style={{fontSize:28,animation:"proPulse 1.2s ease-in-out infinite"}}>📡</div>}
@@ -1733,14 +1708,10 @@ function MainApp({initProfile}){
                         {gpsStatus==="denied"&&<div style={{fontSize:10,color:"#ccc",textAlign:"center",padding:"0 24px"}}>Allow location in browser settings then restart workout</div>}
                       </div>
                     )}
-
-                    {/* Status badge */}
                     <div style={{position:"absolute",top:10,right:12,display:"flex",alignItems:"center",gap:5,background:"rgba(0,0,0,0.65)",borderRadius:10,padding:"4px 9px",border:"1px solid "+statusColor+"55",zIndex:1000}}>
                       <div style={{width:7,height:7,borderRadius:"50%",background:statusColor,boxShadow:"0 0 6px "+statusColor,animation:isTracking?"proPulse 1.2s ease-in-out infinite":"none"}}/>
                       <span style={{fontSize:9,fontWeight:900,color:statusColor,letterSpacing:1.5}}>{statusLabel}</span>
                     </div>
-
-                    {/* Distance badge */}
                     <div style={{position:"absolute",bottom:10,left:12,background:"rgba(0,0,0,0.65)",borderRadius:8,padding:"3px 8px",zIndex:1000}}>
                       <span style={{fontSize:10,color:C.green,fontWeight:700}}>{(gpsDist/1000).toFixed(3)} km · {gpsCoords.length} pts</span>
                     </div>
@@ -3190,31 +3161,7 @@ function MainApp({initProfile}){
                   <div style={{fontSize:12,color:C.dim,marginBottom:8}}>☁️ Cloud Sync</div>
                   <div style={{fontSize:11,color:C.muted,marginBottom:10}}>Sign in to sync your data across devices</div>
                   <div id="gsignin-settings" style={{display:"flex",justifyContent:"center"}}/>
-                  {(function(){
-                    useEffect(function(){
-                      function tryInit(){
-                        if(!window.__FB||!window.google||!window.google.accounts){setTimeout(tryInit,400);return;}
-                        var el=document.getElementById("gsignin-settings");
-                        if(!el||el.dataset.init) return;
-                        el.dataset.init="1";
-                        window.google.accounts.id.initialize({
-                          client_id:"824322486194-mhm0bphtf267bdf3tj22ehqck9lj9p3v.apps.googleusercontent.com",
-                          callback:function(response){
-                            var cred=window.__FB.GoogleAuthProvider.credential(response.credential);
-                            window.__FB.signInWithCredential(window.__FB.auth,cred).then(function(r){
-                              var user=r.user;
-                              window.__sfUid=user.uid;
-                              try{localStorage.setItem("sf:googleUser",JSON.stringify({name:user.displayName,email:user.email,avatar:user.photoURL,uid:user.uid}));}catch(e){}
-                              window.location.reload();
-                            });
-                          }
-                        });
-                        window.google.accounts.id.renderButton(el,{theme:"filled_blue",size:"large",shape:"pill",text:"signin_with"});
-                      }
-                      tryInit();
-                    },[]);
-                    return null;
-                  })()}
+                  {null}
                 </div>;
               }
             })()}
