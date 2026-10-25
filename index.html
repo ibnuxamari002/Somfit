@@ -174,6 +174,58 @@ var LANGS={
     no_data:"Wali xog ma jirto",days:"maalmo",mins:"daqiiqo",km:"km",mi:"mi",
     bpm:"jm/d",kg:"kg",lbs:"ratan",glasses:"koob",hours:"saac",
     excellent:"Heer sare",good:"Wanaagsan",fair:"Dhexdhexaad",poor:"Hooseeya"
+  },
+  ar:{
+    code:"ar",name:"العربية",dir:"rtl",
+    // Nav
+    home:"الرئيسية",workouts:"التمارين",health:"الصحة",social:"المجتمع",profile:"الملف",
+    // Common
+    steps:"الخطوات",calories:"السعرات",distance:"المسافة",heart_rate:"نبض القلب",
+    water:"الماء",sleep:"النوم",weight:"الوزن",streak:"السلسلة",
+    today:"اليوم",week:"الأسبوع",month:"الشهر",
+    save:"حفظ",cancel:"إلغاء",done:"تم",add:"إضافة",edit:"تعديل",delete:"حذف",
+    // Login
+    welcome_title:"مرحباً بك في Som Fit",welcome_sub:"رفيقك الرياضي المميز",
+    sign_in_google:"تسجيل الدخول بـ Google",skip:"تخطي الآن",
+    // Dashboard
+    daily_goal:"الهدف اليومي",good_morning:"صباح الخير",good_afternoon:"مساء الخير",good_evening:"مساء النور",
+    steps_today:"خطوات اليوم",active_mins:"الدقائق النشطة",
+    // Workouts
+    log_workout:"تسجيل تمرين",workout_history:"سجل التمارين",start_workout:"ابدأ التمرين",
+    duration:"المدة",type:"النوع",
+    // Health
+    blood_pressure:"ضغط الدم",nutrition:"التغذية",measurements:"القياسات",
+    // Settings
+    settings:"الإعدادات",dark_mode:"الوضع الليلي",language:"اللغة",units:"الوحدات",
+    sign_out:"تسجيل الخروج",
+    // Onboarding
+    your_name:"اسمك",your_goal:"هدف الخطوات اليومية",choose_avatar:"اختر الصورة",
+    // Misc
+    ai_coach:"المدرب الذكي",challenges:"التحديات",notifications:"الإشعارات",
+    no_data:"لا توجد بيانات بعد",days:"أيام",mins:"دقائق",km:"كم",mi:"ميل",
+    bpm:"ن/د",kg:"كجم",lbs:"رطل",glasses:"كوب",hours:"ساعات",
+    excellent:"ممتاز",good:"جيد",fair:"مقبول",poor:"ضعيف"
+  },
+  fr:{
+    code:"fr",name:"Français",dir:"ltr",
+    home:"Accueil",workouts:"Entraînements",health:"Santé",social:"Social",profile:"Profil",
+    steps:"Pas",calories:"Calories",distance:"Distance",heart_rate:"Fréq. cardiaque",
+    water:"Eau",sleep:"Sommeil",weight:"Poids",streak:"Série",
+    today:"Aujourd'hui",week:"Semaine",month:"Mois",
+    save:"Enregistrer",cancel:"Annuler",done:"Terminé",add:"Ajouter",edit:"Modifier",delete:"Supprimer",
+    welcome_title:"Bienvenue sur Som Fit",welcome_sub:"Votre compagnon fitness",
+    sign_in_google:"Continuer avec Google",skip:"Passer pour l'instant",
+    daily_goal:"Objectif quotidien",good_morning:"Bonjour",good_afternoon:"Bon après-midi",good_evening:"Bonsoir",
+    steps_today:"Pas aujourd'hui",active_mins:"Minutes actives",
+    log_workout:"Enregistrer séance",workout_history:"Historique",start_workout:"Démarrer",
+    duration:"Durée",type:"Type",
+    blood_pressure:"Tension artérielle",nutrition:"Nutrition",measurements:"Mesures",
+    settings:"Paramètres",dark_mode:"Mode sombre",language:"Langue",units:"Unités",sign_out:"Déconnexion",
+    your_name:"Votre nom",your_goal:"Objectif de pas",choose_avatar:"Choisir avatar",
+    ai_coach:"Coach IA",challenges:"Défis",notifications:"Notifications",
+    no_data:"Pas de données",days:"jours",mins:"min",km:"km",mi:"mi",
+    bpm:"bpm",kg:"kg",lbs:"lbs",glasses:"verres",hours:"heures",
+    excellent:"Excellent",good:"Bien",fair:"Moyen",poor:"Faible"
   }
 };
 function getLang(){
@@ -1139,13 +1191,18 @@ function MainApp({initProfile}){
     return function(){if(window._sfMap){window._sfMap.remove();window._sfMap=null;window._sfRouteLine=null;window._sfPosMarker=null;window._sfStartMarker=null;}};
   },[]);
 
-  // Google Sign-In button init for settings panel (top-level, not inside IIFE)
+  // Google Sign-In button init for settings panel — re-runs whenever tab changes to "more"
   useEffect(function(){
+    if(tab!=="more") return;
+    var uid=window.__sfUid;
+    var cached=null;
+    try{var s=localStorage.getItem("sf:googleUser");if(s)cached=JSON.parse(s);}catch(e){}
+    if(uid||cached) return; // already signed in, no button needed
     function tryInitGSI(){
       if(!window.__FB||!window.google||!window.google.accounts){setTimeout(tryInitGSI,400);return;}
       var el=document.getElementById("gsignin-settings");
-      if(!el||el.dataset.init) return;
-      el.dataset.init="1";
+      if(!el) return;
+      el.innerHTML=""; // clear any stale button
       window.google.accounts.id.initialize({
         client_id:"824322486194-mhm0bphtf267bdf3tj22ehqck9lj9p3v.apps.googleusercontent.com",
         callback:function(response){
@@ -1160,8 +1217,8 @@ function MainApp({initProfile}){
       });
       window.google.accounts.id.renderButton(el,{theme:"filled_blue",size:"large",shape:"pill",text:"signin_with"});
     }
-    tryInitGSI();
-  },[]);
+    setTimeout(tryInitGSI,200);
+  },[tab]);
 
   // Interval timer countdown
   useEffect(function(){
@@ -3074,6 +3131,105 @@ function MainApp({initProfile}){
 
         {/* MORE TAB */}
         {tab==="more"&&<div style={{display:"flex",flexDirection:"column",gap:14}}>
+
+          {/* ── Subscription Plans ── */}
+          {(function(){
+            var subKey="sf:subscription";
+            var trialKey="sf:trialStart";
+            var sub=null;
+            var trialStart=null;
+            try{var s=localStorage.getItem(subKey);if(s)sub=JSON.parse(s);}catch(e){}
+            try{var t=localStorage.getItem(trialKey);if(t)trialStart=parseInt(t,10);}catch(e){}
+
+            // Start trial on first visit to this section
+            if(!trialStart){
+              trialStart=Date.now();
+              try{localStorage.setItem(trialKey,String(trialStart));}catch(e){}
+            }
+            var trialDaysLeft=Math.max(0,7-Math.floor((Date.now()-trialStart)/(1000*60*60*24)));
+            var trialActive=trialDaysLeft>0;
+
+            var PLANS=[
+              {id:"monthly",label:"1 Month",price:"$4.99",per:"/mo",color:C.cyan,icon:"⚡",desc:"Billed monthly · Cancel anytime",savings:""},
+              {id:"biannual",label:"6 Months",price:"$19.99",per:"/6mo",color:C.green,icon:"🔥",desc:"Only $3.33/mo · Save 33%",savings:"POPULAR",badge:true},
+              {id:"annual",label:"12 Months",price:"$34.99",per:"/yr",color:C.purple,icon:"👑",desc:"Only $2.92/mo · Save 42%",savings:"BEST VALUE"},
+            ];
+
+            var isSubbed=sub&&sub.id;
+            var activePlan=isSubbed?PLANS.find(function(p){return p.id===sub.id;}):null;
+
+            return <GlassCard style={{padding:18}}>
+              {/* Header */}
+              <div style={{textAlign:"center",marginBottom:16}}>
+                <div style={{fontSize:28,marginBottom:4}}>👑</div>
+                <div style={{fontSize:18,fontWeight:900,background:G.purple,WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent"}}>Som Fit PRO</div>
+                <div style={{fontSize:12,color:C.muted,marginTop:4}}>Unlock all features · AI Coach · Advanced stats</div>
+              </div>
+
+              {/* Trial banner */}
+              {!isSubbed&&(
+                <div style={{padding:"10px 14px",borderRadius:14,background:trialActive?C.green+"15":C.amber+"15",border:"1px solid "+(trialActive?C.green+"44":C.amber+"44"),marginBottom:14,textAlign:"center"}}>
+                  {trialActive
+                    ?<div><span style={{fontSize:14,fontWeight:800,color:C.green}}>🎁 Free Trial Active</span><div style={{fontSize:11,color:C.muted,marginTop:2}}>{trialDaysLeft} day{trialDaysLeft!==1?"s":""} remaining — subscribe before it ends</div></div>
+                    :<div><span style={{fontSize:13,fontWeight:700,color:C.amber}}>⏰ Trial Ended</span><div style={{fontSize:11,color:C.muted,marginTop:2}}>Subscribe to keep all PRO features</div></div>
+                  }
+                </div>
+              )}
+
+              {/* Active subscription */}
+              {isSubbed&&activePlan&&(
+                <div style={{padding:"12px 14px",borderRadius:14,background:activePlan.color+"15",border:"1px solid "+activePlan.color+"44",marginBottom:14,display:"flex",alignItems:"center",gap:10}}>
+                  <div style={{fontSize:22}}>{activePlan.icon}</div>
+                  <div style={{flex:1}}>
+                    <div style={{fontSize:13,fontWeight:800,color:activePlan.color}}>✅ {activePlan.label} Plan Active</div>
+                    <div style={{fontSize:11,color:C.muted}}>Subscribed on {new Date(sub.date).toLocaleDateString()}</div>
+                  </div>
+                  <button onClick={function(){
+                    if(!confirm("Cancel your subscription?")) return;
+                    try{localStorage.removeItem(subKey);}catch(e){}
+                    window.location.reload();
+                  }} style={{fontSize:10,padding:"4px 10px",borderRadius:8,border:"1px solid "+C.red+"44",background:C.red+"0A",color:C.red,cursor:"pointer",fontWeight:700}}>Cancel</button>
+                </div>
+              )}
+
+              {/* Plan cards */}
+              <div style={{display:"flex",flexDirection:"column",gap:10}}>
+                {PLANS.map(function(plan){
+                  var isActive=isSubbed&&sub.id===plan.id;
+                  return <div key={plan.id} style={{borderRadius:16,padding:"14px 16px",background:isActive?plan.color+"18":"rgba(255,255,255,0.04)",border:"2px solid "+(isActive?plan.color:plan.color+"33"),position:"relative",transition:"all 0.2s"}}>
+                    {plan.savings&&<div style={{position:"absolute",top:-10,right:14,background:plan.badge?"linear-gradient(135deg,"+C.green+","+C.greenDark+")":plan.color,color:"#000",fontSize:9,fontWeight:900,padding:"3px 10px",borderRadius:20,letterSpacing:1}}>{plan.savings}</div>}
+                    <div style={{display:"flex",alignItems:"center",gap:12}}>
+                      <div style={{fontSize:26}}>{plan.icon}</div>
+                      <div style={{flex:1}}>
+                        <div style={{fontSize:15,fontWeight:800,color:C.text}}>{plan.label}</div>
+                        <div style={{fontSize:10,color:C.muted,marginTop:2}}>{plan.desc}</div>
+                      </div>
+                      <div style={{textAlign:"right"}}>
+                        <div style={{fontSize:20,fontWeight:900,color:plan.color}}>{plan.price}</div>
+                        <div style={{fontSize:10,color:C.muted}}>{plan.per}</div>
+                      </div>
+                    </div>
+                    {!isActive&&<button onClick={function(){
+                      // Placeholder — payment not yet connected
+                      alert("Payment coming soon! We will notify you when online payments are ready.");
+                    }} style={{marginTop:12,width:"100%",padding:"10px",borderRadius:12,border:"none",background:"linear-gradient(135deg,"+plan.color+","+plan.color+"AA)",color:"#000",fontSize:13,fontWeight:800,cursor:"pointer"}}>
+                      {trialActive?"Start After Trial":"Subscribe Now"}
+                    </button>}
+                    {isActive&&<div style={{marginTop:10,textAlign:"center",fontSize:12,color:plan.color,fontWeight:700}}>✓ Current Plan</div>}
+                  </div>;
+                })}
+              </div>
+
+              {/* Features list */}
+              <div style={{marginTop:16,padding:"12px 14px",borderRadius:14,background:"rgba(255,255,255,0.03)",border:"1px solid "+C.border+"44"}}>
+                <div style={{fontSize:11,fontWeight:700,color:C.muted,marginBottom:8,letterSpacing:0.5}}>PRO INCLUDES</div>
+                {["🤖 AI Coach — unlimited messages","📊 Advanced health analytics","🗺️ Offline maps & GPS tracking","🏆 All challenges & leaderboards","☁️ Cloud sync across devices","📄 Doctor report export"].map(function(f,i){
+                  return <div key={i} style={{fontSize:12,color:C.text,padding:"5px 0",borderBottom:i<5?"1px solid "+C.border+"22":"none",display:"flex",alignItems:"center",gap:8}}>{f}</div>;
+                })}
+              </div>
+            </GlassCard>;
+          })()}
+
           <GlassCard style={{padding:18}}>
             <div style={{fontSize:12,color:C.muted,fontWeight:600,letterSpacing:0.5,marginBottom:14}}>⌚ WEARABLES & DEVICES</div>
             {deviceMsg&&<div style={{marginBottom:12,padding:"10px 14px",borderRadius:12,background:deviceMsg.startsWith("✓")?C.green+"18":C.red+"18",border:"1px solid "+(deviceMsg.startsWith("✓")?C.green+"44":C.red+"44"),fontSize:12,fontWeight:600,color:deviceMsg.startsWith("✓")?C.green:C.red}}>{deviceMsg}</div>}
@@ -3109,15 +3265,16 @@ function MainApp({initProfile}){
             <div style={{fontSize:12,color:C.muted,fontWeight:600,letterSpacing:0.5,marginBottom:12}}>⚙️ {T("settings")}</div>
             <div style={{marginBottom:14}}>
               <div style={{fontSize:12,color:C.dim,marginBottom:8}}>🌐 {T("language")}</div>
-              <div style={{display:"flex",background:"#1565C0",borderRadius:14,padding:4,gap:4,border:"1px solid "+C.border}}>
+              <div style={{display:"flex",flexWrap:"wrap",background:"#1565C0",borderRadius:14,padding:4,gap:4,border:"1px solid "+C.border}}>
                 {Object.values(LANGS).map(function(lg){
                   var active=window.__lang===lg.code;
+                  var flag=lg.code==="so"?"🇸🇴":lg.code==="en"?"🇬🇧":lg.code==="ar"?"🇸🇦":lg.code==="fr"?"🇫🇷":"🌐";
                   return <button key={lg.code} onClick={function(){
+                    try{localStorage.setItem("sf:lang",lg.code);}catch(e){}
                     window.__lang=lg.code;
-                    setLangStorage(lg.code);
                     window.location.reload();
-                  }} style={{flex:1,padding:"11px",borderRadius:11,border:"none",cursor:"pointer",fontWeight:700,fontSize:12,background:active?G.cyan:"transparent",color:active?"#020A06":C.muted}}>
-                    {lg.code==="so"?"🇸🇴":lg.code==="en"?"🇬🇧":""} {lg.name}
+                  }} style={{flex:"1 1 40%",padding:"10px 6px",borderRadius:11,border:"none",cursor:"pointer",fontWeight:700,fontSize:12,background:active?G.cyan:"transparent",color:active?"#020A06":C.muted,direction:"ltr"}}>
+                    {flag} {lg.name}
                   </button>;
                 })}
               </div>
@@ -3972,6 +4129,18 @@ function SomFit(){
 
 const root=ReactDOM.createRoot(document.getElementById("root"));
 root.render(<SomFit/>);
+</script>
+<script>
+// Register service worker for offline support
+if("serviceWorker" in navigator){
+  window.addEventListener("load",function(){
+    navigator.serviceWorker.register("sw.js").then(function(reg){
+      console.log("SW registered:",reg.scope);
+    }).catch(function(e){
+      console.warn("SW registration failed:",e);
+    });
+  });
+}
 </script>
 </body>
 </html>
