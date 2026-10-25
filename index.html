@@ -1022,9 +1022,17 @@ function MainApp({initProfile}){
       }
       ref.prevMag=mag;
     }
-    // Request permission on iOS 13+; auto-start on Android/others
+    // Auto-start on Android; try auto-request on iOS too
     if(typeof DeviceMotionEvent!=="undefined"&&typeof DeviceMotionEvent.requestPermission==="function"){
-      // iOS — need explicit user tap; started by the banner button
+      // iOS 13+ — try auto-request (works if page was opened via user interaction)
+      DeviceMotionEvent.requestPermission().then(function(r){
+        if(r==="granted"){
+          window.addEventListener("devicemotion",onMotion,{passive:true});
+          setMotionGranted(true);
+        }
+      }).catch(function(){
+        // iOS blocked auto-request — banner tap will handle it
+      });
     } else if(typeof DeviceMotionEvent!=="undefined"){
       window.addEventListener("devicemotion",onMotion,{passive:true});
       setMotionGranted(true);
