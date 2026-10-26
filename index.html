@@ -16,7 +16,7 @@
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 <script type="module">
   import{initializeApp}from"https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-  import{getAuth,GoogleAuthProvider,signInWithCredential,onAuthStateChanged,signOut}from"https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+  import{getAuth,GoogleAuthProvider,signInWithCredential,onAuthStateChanged,signOut,RecaptchaVerifier,signInWithPhoneNumber}from"https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
   import{getFirestore,doc,setDoc,getDoc,serverTimestamp,collection,getDocs,deleteDoc,writeBatch}from"https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
   const firebaseConfig={
     apiKey:"AIzaSyBlIlE7uJak4x6Bu30U0EkUnU3TL-a-GqM",
@@ -29,7 +29,7 @@
   const app=initializeApp(firebaseConfig);
   const auth=getAuth(app);
   const db=getFirestore(app);
-  window.__FB={auth,db,GoogleAuthProvider,signInWithCredential,signOut,doc,setDoc,getDoc,serverTimestamp,onAuthStateChanged,collection,getDocs,deleteDoc,writeBatch};
+  window.__FB={auth,db,GoogleAuthProvider,signInWithCredential,signOut,doc,setDoc,getDoc,serverTimestamp,onAuthStateChanged,collection,getDocs,deleteDoc,writeBatch,RecaptchaVerifier,signInWithPhoneNumber};
 </script>
 <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
 <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
@@ -499,69 +499,118 @@ var GOOGLE_CLIENT_ID="824322486194-mhm0bphtf267bdf3tj22ehqck9lj9p3v.apps.googleu
 function LoginScreen({onDone}){
   const [error,setError]=useState("");
   const [loading,setLoading]=useState(false);
+  const [mode,setMode]=useState("main"); // "main" | "phone" | "otp"
+  const [phone,setPhone]=useState("+252");
+  const [otp,setOtp]=useState("");
+  const [confirmResult,setConfirmResult]=useState(null);
   const googleBtnRef=useRef(null);
+  const recaptchaRef=useRef(null);
+
+  function saveUserAndDone(user){
+    var fb=window.__FB;
+    fb.setDoc(fb.doc(fb.db,"users",user.uid),{
+      uid:user.uid,name:user.displayName||"",email:user.email||"",
+      phone:user.phoneNumber||"",lastLogin:fb.serverTimestamp(),platform:"web"
+    },{merge:true}).catch(function(){});
+    try{localStorage.setItem("sf:googleUser",JSON.stringify({name:user.displayName||user.phoneNumber,email:user.email||"",avatar:user.photoURL||"",uid:user.uid}));}catch(e){}
+    setLoading(false);
+    onDone();
+  }
 
   useEffect(function(){
-    // Wait for Firebase + Google GSI both ready
     function tryInit(){
       if(!window.__FB||!window.google||!window.google.accounts){setTimeout(tryInit,300);return;}
-      var{auth,db,GoogleAuthProvider,signInWithCredential,doc,setDoc,serverTimestamp}=window.__FB;
+      var fb=window.__FB;
       window.google.accounts.id.initialize({
         client_id:GOOGLE_CLIENT_ID,
         callback:function(response){
           setLoading(true);
-          try{
-            // Sign in to Firebase with the Google credential
-            var credential=GoogleAuthProvider.credential(response.credential);
-            signInWithCredential(auth,credential).then(function(result){
-              var user=result.user;
-              // Save user to Firestore users collection
-              setDoc(doc(db,"users",user.uid),{
-                uid:user.uid,
-                name:user.displayName||"",
-                email:user.email||"",
-                avatar:user.photoURL||"",
-                lastLogin:serverTimestamp(),
-                platform:"web"
-              },{merge:true}).catch(function(e){console.warn("Firestore write failed:",e);});
-              // Also cache locally for fast access
-              try{localStorage.setItem("sf:googleUser",JSON.stringify({name:user.displayName,email:user.email,avatar:user.photoURL,uid:user.uid}));}catch(e){}
-              setLoading(false);
-              onDone();
-            }).catch(function(e){
-              setError("Sign-in failed: "+e.message);
-              setLoading(false);
-            });
-          }catch(e){setError("Sign-in failed. Try again.");setLoading(false);}
+          var credential=fb.GoogleAuthProvider.credential(response.credential);
+          fb.signInWithCredential(fb.auth,credential).then(function(r){saveUserAndDone(r.user);})
+            .catch(function(e){setError("Google sign-in failed: "+e.message);setLoading(false);});
         }
       });
       if(googleBtnRef.current){
-        window.google.accounts.id.renderButton(googleBtnRef.current,{
-          theme:"outline",size:"large",shape:"pill",width:300,text:"continue_with"
-        });
+        window.google.accounts.id.renderButton(googleBtnRef.current,{theme:"filled_blue",size:"large",shape:"pill",width:300,text:"continue_with"});
       }
     }
     tryInit();
   },[]);
 
+  function sendOTP(){
+    if(!phone||phone.length<8){setError("Enter a valid phone number");return;}
+    setError("");setLoading(true);
+    var fb=window.__FB;
+    try{
+      if(!window._recaptchaVerifier){
+        window._recaptchaVerifier=new fb.RecaptchaVerifier(fb.auth,"recaptcha-container",{size:"invisible"});
+      }
+      fb.signInWithPhoneNumber(fb.auth,phone,window._recaptchaVerifier).then(function(result){
+        setConfirmResult(result);setMode("otp");setLoading(false);
+      }).catch(function(e){
+        setError("SMS failed: "+e.message);setLoading(false);
+        window._recaptchaVerifier=null;
+      });
+    }catch(e){setError("Error: "+e.message);setLoading(false);}
+  }
+
+  function verifyOTP(){
+    if(!otp||otp.length<6){setError("Enter the 6-digit code");return;}
+    setError("");setLoading(true);
+    confirmResult.confirm(otp).then(function(r){saveUserAndDone(r.user);})
+      .catch(function(e){setError("Wrong code. Try again.");setLoading(false);});
+  }
+
+  var inputStyle={width:"100%",padding:"14px 16px",borderRadius:14,border:"1px solid "+C.border,background:"rgba(255,255,255,0.06)",color:C.text,fontSize:16,outline:"none",fontFamily:"inherit"};
+  var btnStyle={width:"100%",padding:"14px",borderRadius:14,border:"none",background:G.green,color:"#000",fontSize:15,fontWeight:800,cursor:"pointer"};
+
   return(
-    <div style={{minHeight:"100vh",background:C.bg,padding:"60px 24px 40px",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center"}}>
-      <div style={{textAlign:"center",marginBottom:48}}>
-        <div style={{fontSize:56,marginBottom:16}}>🏃</div>
-        <div style={{fontSize:30,fontWeight:900,background:G.hero,WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent",marginBottom:8}}>Welcome to Som Fit</div>
-        <div style={{color:C.muted,fontSize:14}}>Sign in with Google to get started</div>
+    <div style={{minHeight:"100vh",background:C.bg,padding:"48px 24px 40px",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center"}}>
+      <div id="recaptcha-container"/>
+      <div style={{textAlign:"center",marginBottom:36}}>
+        <div style={{fontSize:52,marginBottom:12}}>🏃</div>
+        <div style={{fontSize:28,fontWeight:900,background:G.hero,WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent",marginBottom:6}}>Welcome to Som Fit</div>
+        <div style={{color:C.muted,fontSize:13}}>Sign in to sync your fitness data</div>
       </div>
-      <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:16,width:"100%",maxWidth:320}}>
+
+      {error&&<div style={{color:C.red,fontSize:13,textAlign:"center",padding:"10px 16px",borderRadius:12,background:C.red+"15",border:"1px solid "+C.red+"33",marginBottom:16,width:"100%",maxWidth:320}}>{error}</div>}
+
+      {mode==="main"&&<div style={{width:"100%",maxWidth:320,display:"flex",flexDirection:"column",gap:12}}>
         {loading
-          ?<div style={{color:C.green,fontSize:15,fontWeight:700}}>✅ Signing you in…</div>
-          :<div ref={googleBtnRef} style={{minHeight:48,display:"flex",justifyContent:"center",width:"100%"}}></div>
-        }
-        {error&&<div style={{color:"#ff6b6b",fontSize:13,textAlign:"center",padding:"10px 16px",borderRadius:12,background:C.red+"15",border:"1px solid "+C.red+"44"}}>{error}</div>}
-      </div>
-      <div onClick={function(){onDone();}} style={{marginTop:24,padding:"12px 24px",borderRadius:14,border:"1px solid "+C.border+"66",background:"transparent",color:C.muted,fontSize:13,fontWeight:600,cursor:"pointer",textAlign:"center"}}>
-        Continue without account
-      </div>
-      <div style={{textAlign:"center",color:C.muted,fontSize:11,marginTop:24,lineHeight:1.6}}>By continuing you agree to our<br/>Terms of Service & Privacy Policy</div>
+          ?<div style={{textAlign:"center",color:C.green,fontSize:15,fontWeight:700,padding:16}}>✅ Signing you in…</div>
+          :<div ref={googleBtnRef} style={{minHeight:48,display:"flex",justifyContent:"center"}}/>}
+        <div style={{display:"flex",alignItems:"center",gap:10,margin:"4px 0"}}>
+          <div style={{flex:1,height:1,background:C.border}}/><span style={{color:C.muted,fontSize:12}}>or</span><div style={{flex:1,height:1,background:C.border}}/>
+        </div>
+        <button onClick={function(){setMode("phone");setError("");}} style={{...btnStyle,background:"rgba(255,255,255,0.08)",color:C.text,border:"1px solid "+C.border,fontWeight:700}}>
+          📱 Continue with Phone Number
+        </button>
+        <button onClick={function(){onDone();}} style={{padding:"12px",borderRadius:14,border:"1px solid "+C.border+"44",background:"transparent",color:C.muted,fontSize:13,fontWeight:600,cursor:"pointer",textAlign:"center"}}>
+          Continue without account
+        </button>
+      </div>}
+
+      {mode==="phone"&&<div style={{width:"100%",maxWidth:320,display:"flex",flexDirection:"column",gap:12}}>
+        <div style={{fontSize:15,fontWeight:700,color:C.text,marginBottom:4}}>📱 Enter your phone number</div>
+        <div style={{fontSize:12,color:C.muted,marginBottom:8}}>We'll send a verification code via SMS</div>
+        <input value={phone} onChange={function(e){setPhone(e.target.value);}} placeholder="+252 61 234 5678" type="tel" style={inputStyle}/>
+        <button onClick={sendOTP} disabled={loading} style={{...btnStyle,opacity:loading?0.7:1}}>
+          {loading?"Sending…":"Send Verification Code"}
+        </button>
+        <button onClick={function(){setMode("main");setError("");}} style={{padding:"12px",borderRadius:14,border:"none",background:"transparent",color:C.muted,fontSize:13,cursor:"pointer"}}>← Back</button>
+      </div>}
+
+      {mode==="otp"&&<div style={{width:"100%",maxWidth:320,display:"flex",flexDirection:"column",gap:12}}>
+        <div style={{fontSize:15,fontWeight:700,color:C.text,marginBottom:4}}>🔢 Enter verification code</div>
+        <div style={{fontSize:12,color:C.muted,marginBottom:8}}>Code sent to {phone}</div>
+        <input value={otp} onChange={function(e){setOtp(e.target.value);}} placeholder="6-digit code" type="number" maxLength={6} style={{...inputStyle,letterSpacing:8,fontSize:22,textAlign:"center"}}/>
+        <button onClick={verifyOTP} disabled={loading} style={{...btnStyle,opacity:loading?0.7:1}}>
+          {loading?"Verifying…":"Verify & Sign In"}
+        </button>
+        <button onClick={function(){setMode("phone");setOtp("");setError("");}} style={{padding:"12px",borderRadius:14,border:"none",background:"transparent",color:C.muted,fontSize:13,cursor:"pointer"}}>← Resend code</button>
+      </div>}
+
+      <div style={{textAlign:"center",color:C.muted,fontSize:11,marginTop:28,lineHeight:1.7}}>By continuing you agree to our<br/>Terms of Service & Privacy Policy</div>
     </div>
   );
 }
