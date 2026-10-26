@@ -3264,22 +3264,6 @@ function MainApp({initProfile}){
           <GlassCard style={{padding:18}}>
             <div style={{fontSize:12,color:C.muted,fontWeight:600,letterSpacing:0.5,marginBottom:12}}>⚙️ {T("settings")}</div>
             <div style={{marginBottom:14}}>
-              <div style={{fontSize:12,color:C.dim,marginBottom:8}}>🌐 {T("language")}</div>
-              <div style={{display:"flex",flexWrap:"wrap",background:"#1565C0",borderRadius:14,padding:4,gap:4,border:"1px solid "+C.border}}>
-                {Object.values(LANGS).map(function(lg){
-                  var active=window.__lang===lg.code;
-                  var flag=lg.code==="so"?"🇸🇴":lg.code==="en"?"🇬🇧":lg.code==="ar"?"🇸🇦":lg.code==="fr"?"🇫🇷":"🌐";
-                  return <button key={lg.code} onClick={function(){
-                    try{localStorage.setItem("sf:lang",lg.code);}catch(e){}
-                    window.__lang=lg.code;
-                    window.location.reload();
-                  }} style={{flex:"1 1 40%",padding:"10px 6px",borderRadius:11,border:"none",cursor:"pointer",fontWeight:700,fontSize:12,background:active?G.cyan:"transparent",color:active?"#020A06":C.muted,direction:"ltr"}}>
-                    {flag} {lg.name}
-                  </button>;
-                })}
-              </div>
-            </div>
-            <div style={{marginBottom:14}}>
               <div style={{fontSize:12,color:C.dim,marginBottom:8}}>{T("units")}</div>
               <div style={{display:"flex",background:"#1565C0",borderRadius:14,padding:4,gap:4,border:"1px solid "+C.border}}>
                 {[{v:"km",l:"Kilometers (km)"},{v:"mi",l:"Miles (mi)"}].map(function(u){
@@ -3330,16 +3314,6 @@ function MainApp({initProfile}){
                 </div>;
               }
             })()}
-            <button onClick={function(){
-              if(!confirm("Reset all app data? This clears your steps, history, profile and progress."))return;
-              try{
-                var keys=["sf:profile","sf:steps","sf:hr","sf:darkMode","sf:water","sf:planDone","sf:workoutHistory","sf:downloadedMaps","sf:joinedChallenges","sf:dismissed","sf:deviceStates","sf:bpSys","sf:bpDia","sf:unit","sf:onboarded","sf:dailyLogs","sf:streak","sf:lastStreakDay","sf:sleepLogs","sf:nutritionLogs","sf:weightLogs","sf:measureLogs","sf:lastDay"];
-                keys.forEach(function(k){localStorage.removeItem(k);});
-              }catch(e){}
-              window.location.reload();
-            }} style={{width:"100%",padding:"12px",borderRadius:14,border:"1px solid "+C.red+"44",background:C.red+"0A",color:C.red,fontSize:13,fontWeight:700,cursor:"pointer",letterSpacing:0.3}}>
-              🗑️ Reset App Data
-            </button>
           </GlassCard>
         </div>}
       </div>
