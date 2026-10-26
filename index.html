@@ -3301,7 +3301,15 @@ function MainApp({initProfile}){
                   <div style={{fontSize:12,color:C.dim,marginBottom:8}}>☁️ Cloud Sync</div>
                   <div style={{fontSize:11,color:C.muted,marginBottom:10}}>Sign in to sync your data across devices</div>
                   <div id="gsignin-settings" style={{display:"flex",justifyContent:"center"}}/>
-                  {null}
+                  <button onClick={function(){
+                    if(!window.confirm("Sign out of Som Fit?")) return;
+                    if(window.__FB&&window.__FB.auth){window.__FB.signOut(window.__FB.auth).catch(function(){});}
+                    window.__sfUid=null;
+                    try{localStorage.removeItem("sf:googleUser");}catch(e){}
+                    window.location.reload();
+                  }} style={{width:"100%",marginTop:10,padding:"11px",borderRadius:14,border:"1px solid "+C.red+"44",background:C.red+"0A",color:C.red,fontSize:13,fontWeight:700,cursor:"pointer"}}>
+                    🚪 Sign Out
+                  </button>
                 </div>;
               }
             })()}
