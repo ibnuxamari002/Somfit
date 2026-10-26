@@ -544,27 +544,21 @@ function LoginScreen({onDone}){
     tryInit();
   },[]);
 
-  function handleSkip(){onDone();}
-
   return(
-    <div style={{minHeight:"100vh",background:C.bg,padding:"60px 24px 40px",display:"flex",flexDirection:"column"}}>
-      <div style={{textAlign:"center",marginBottom:40}}>
-        <div style={{fontSize:40,marginBottom:12}}>🏃</div>
-        <div style={{fontSize:28,fontWeight:900,background:G.hero,WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent"}}>Welcome to Som Fit</div>
-        <div style={{color:C.muted,fontSize:14,marginTop:6}}>Sign in to sync your fitness data</div>
+    <div style={{minHeight:"100vh",background:C.bg,padding:"60px 24px 40px",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center"}}>
+      <div style={{textAlign:"center",marginBottom:48}}>
+        <div style={{fontSize:56,marginBottom:16}}>🏃</div>
+        <div style={{fontSize:30,fontWeight:900,background:G.hero,WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent",marginBottom:8}}>Welcome to Som Fit</div>
+        <div style={{color:C.muted,fontSize:14}}>Sign in with Google to get started</div>
       </div>
-      <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:16,marginBottom:32}}>
+      <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:16,width:"100%",maxWidth:320}}>
         {loading
-          ?<div style={{color:C.green,fontSize:14,fontWeight:700}}>Signing you in…</div>
-          :<div ref={googleBtnRef} style={{minHeight:44,display:"flex",justifyContent:"center"}}></div>
+          ?<div style={{color:C.green,fontSize:15,fontWeight:700}}>✅ Signing you in…</div>
+          :<div ref={googleBtnRef} style={{minHeight:48,display:"flex",justifyContent:"center",width:"100%"}}></div>
         }
-        {error&&<div style={{color:"#ff6b6b",fontSize:13,textAlign:"center"}}>{error}</div>}
+        {error&&<div style={{color:"#ff6b6b",fontSize:13,textAlign:"center",padding:"10px 16px",borderRadius:12,background:C.red+"15",border:"1px solid "+C.red+"44"}}>{error}</div>}
       </div>
-      <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:24}}>
-        <div style={{flex:1,height:1,background:C.border}}/><span style={{color:C.muted,fontSize:12}}>or</span><div style={{flex:1,height:1,background:C.border}}/>
-      </div>
-      <button onClick={handleSkip} style={{padding:"16px",borderRadius:18,border:"1px solid "+C.border,background:"transparent",color:C.text,fontSize:15,fontWeight:700,cursor:"pointer",marginBottom:12}}>Continue without account</button>
-      <div style={{textAlign:"center",color:C.muted,fontSize:12,marginTop:8}}>By continuing you agree to our Terms & Privacy Policy</div>
+      <div style={{textAlign:"center",color:C.muted,fontSize:11,marginTop:40,lineHeight:1.6}}>By continuing you agree to our<br/>Terms of Service & Privacy Policy</div>
     </div>
   );
 }
@@ -4094,8 +4088,16 @@ function SomFit(){
   const [screen,setScreen]=useState("splash");
   const [initProfile,setInitProfile]=useState(null);
   var returning=getHasOnboarded();
-  // Splash → skip login entirely → go straight to app (or onboarding on first run)
-  if(screen==="splash") return <SplashScreen onDone={function(){setScreen(returning?"app":"profile");}}/>;
+  // Splash → login (new users) or app (returning signed-in users)
+  if(screen==="splash") return <SplashScreen onDone={function(){
+    var cached=null;
+    try{var s=localStorage.getItem("sf:googleUser");if(s)cached=JSON.parse(s);}catch(e){}
+    var isSignedIn=!!window.__sfUid||!!cached;
+    if(returning&&isSignedIn) setScreen("app");
+    else if(returning&&!isSignedIn) setScreen("login");
+    else setScreen("login"); // new user: always login first
+  }}/>;
+  if(screen==="login") return <LoginScreen onDone={function(){setScreen(returning?"app":"profile");}}/>;
   if(screen==="profile") return <ProfileScreen onDone={function(p){setInitProfile(p);setScreen("permissions");}}/>;
   if(screen==="permissions") return <PermissionsScreen onDone={function(){setScreen("app");}}/>;
   return <MainApp initProfile={initProfile}/>;
