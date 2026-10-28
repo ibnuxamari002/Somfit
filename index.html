@@ -36,6 +36,8 @@
 <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
+.white-placeholder::placeholder{color:rgba(255,255,255,0.6);}
+input::placeholder{color:rgba(255,255,255,0.45);}
 body{background:#1565C0;color:#EEF2FF;font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display',sans-serif;min-height:100vh;display:flex;justify-content:center}
 #root{width:100%;max-width:420px}
 input[type=range]{-webkit-appearance:none;height:4px;border-radius:2px;outline:none;cursor:pointer}
@@ -1345,15 +1347,6 @@ function MainApp({initProfile}){
           <button onClick={function(){setShowNotif(true);}} style={{width:40,height:40,borderRadius:14,background:DC.card,border:"1px solid "+DC.border,display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",fontSize:18,position:"relative"}}>
             🔔<span style={{position:"absolute",top:6,right:6,width:8,height:8,borderRadius:4,background:C.pink,border:"2px solid "+DC.bg}}/>
           </button>
-          <button onClick={function(){
-            if(!window.confirm("Sign out of Som Fit?")) return;
-            if(window.__FB&&window.__FB.auth){window.__FB.signOut(window.__FB.auth).catch(function(){});}
-            window.__sfUid=null;
-            try{localStorage.removeItem("sf:googleUser");}catch(e){}
-            window.location.reload();
-          }} style={{width:40,height:40,borderRadius:14,background:C.red+"12",border:"1px solid "+C.red+"33",display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",fontSize:17}} title="Sign Out">
-            🚪
-          </button>
         </div>
       </div>
 
@@ -1868,22 +1861,27 @@ function MainApp({initProfile}){
               var col=itMode==="rest"?C.cyan:itMode==="done"?C.green:C.amber;
               var totalSec=itMode==="rest"?itCfg.rest:itCfg.work;
               var pct=isActive?(itSec/totalSec):1;
-              var r=44; var circ=2*Math.PI*r;
+              var r=46; var circ=2*Math.PI*r;
               var dash=circ*pct;
+              var bgGrad=isActive
+                ?(itMode==="work"?"linear-gradient(145deg,#2D1A00,#1A1200)":"linear-gradient(145deg,#001A2D,#000D1A)")
+                :"linear-gradient(145deg,#0D0D1A,#111122)";
+              var glowCol=isActive?col+"55":"rgba(255,255,255,0.04)";
               return(
-                <div style={{borderRadius:24,overflow:"hidden",background:"rgba(0,0,0,0.25)",border:"1px solid "+(isActive?col+"55":"rgba(255,255,255,0.1)"),transition:"border-color 0.4s"}}>
-                  {/* Header row */}
+                <div style={{borderRadius:26,overflow:"hidden",background:bgGrad,border:"1px solid "+(isActive?col+"66":"rgba(255,255,255,0.12)"),boxShadow:"0 0 32px "+glowCol+", 0 8px 32px rgba(0,0,0,0.4)",transition:"all 0.5s"}}>
+
+                  {/* Header */}
                   <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"14px 16px 0"}}>
                     <div style={{display:"flex",alignItems:"center",gap:8}}>
-                      <div style={{fontSize:18}}>⏱</div>
-                      <div style={{fontSize:12,fontWeight:800,color:C.text,letterSpacing:0.5}}>INTERVAL TIMER</div>
+                      <div style={{width:32,height:32,borderRadius:10,background:isActive?col+"22":"rgba(255,255,255,0.08)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:16,border:"1px solid "+(isActive?col+"44":"rgba(255,255,255,0.1)")}}>⏱</div>
+                      <div style={{fontSize:12,fontWeight:900,color:C.text,letterSpacing:1}}>INTERVAL TIMER</div>
                     </div>
-                    {!isActive&&!isDone&&<button onClick={function(){setItEdit(function(v){return !v;});setItEditCfg(itCfg);}} style={{background:"transparent",border:"1px solid rgba(255,255,255,0.15)",borderRadius:10,padding:"4px 10px",color:C.muted,fontSize:11,cursor:"pointer"}}>⚙ Edit</button>}
-                    {isDone&&<button onClick={function(){setItMode("idle");setItRound(0);setItSec(0);}} style={{background:C.green+"22",border:"1px solid "+C.green+"55",borderRadius:10,padding:"4px 10px",color:C.green,fontSize:11,fontWeight:700,cursor:"pointer"}}>Reset</button>}
-                    {isActive&&<button onClick={function(){setItMode("idle");setItRound(0);setItSec(0);}} style={{background:C.red+"22",border:"1px solid "+C.red+"44",borderRadius:10,padding:"4px 10px",color:C.red,fontSize:11,fontWeight:700,cursor:"pointer"}}>✕ Stop</button>}
+                    {!isActive&&!isDone&&<button onClick={function(){setItEdit(function(v){return !v;});setItEditCfg(itCfg);}} style={{background:"rgba(255,255,255,0.07)",border:"1px solid rgba(255,255,255,0.15)",borderRadius:10,padding:"5px 12px",color:C.muted,fontSize:11,cursor:"pointer",fontWeight:700}}>⚙ Edit</button>}
+                    {isDone&&<button onClick={function(){setItMode("idle");setItRound(0);setItSec(0);}} style={{background:C.green+"22",border:"1px solid "+C.green+"55",borderRadius:10,padding:"5px 12px",color:C.green,fontSize:11,fontWeight:800,cursor:"pointer"}}>↺ Reset</button>}
+                    {isActive&&<button onClick={function(){setItMode("idle");setItRound(0);setItSec(0);}} style={{background:C.red+"22",border:"1px solid "+C.red+"44",borderRadius:10,padding:"5px 12px",color:C.red,fontSize:11,fontWeight:800,cursor:"pointer"}}>✕ Stop</button>}
                   </div>
 
-                  {/* Edit config panel */}
+                  {/* Edit panel */}
                   {itEdit&&!isActive&&!isDone&&(function(){
                     function adj(field,delta){
                       setItEditCfg(function(c){
@@ -1895,135 +1893,127 @@ function MainApp({initProfile}){
                     }
                     function fmtS(s){return s>=60?Math.floor(s/60)+"m "+(s%60>0?s%60+"s":""):s+"s";}
                     return(
-                      <div style={{padding:"12px 16px",display:"flex",flexDirection:"column",gap:10}}>
+                      <div style={{margin:"12px 14px",padding:"14px",borderRadius:18,background:"rgba(255,255,255,0.05)",border:"1px solid rgba(255,255,255,0.08)",display:"flex",flexDirection:"column",gap:10}}>
                         {[{k:"work",label:"Work",color:C.amber},{k:"rest",label:"Rest",color:C.cyan},{k:"rounds",label:"Rounds",color:C.purple}].map(function(f){
                           return(
                             <div key={f.k} style={{display:"flex",alignItems:"center",justifyContent:"space-between"}}>
-                              <div style={{fontSize:12,color:f.color,fontWeight:700,width:54}}>{f.label}</div>
-                              <div style={{display:"flex",alignItems:"center",gap:0,background:"rgba(0,0,0,0.3)",borderRadius:12,overflow:"hidden"}}>
-                                <button onClick={function(){adj(f.k,-((f.k==="rounds")?1:5));}} style={{width:36,height:32,background:"transparent",border:"none",color:C.text,fontSize:18,cursor:"pointer",fontWeight:700}}>−</button>
-                                <div style={{width:60,textAlign:"center",fontSize:13,fontWeight:800,color:C.text}}>{f.k==="rounds"?itEditCfg[f.k]:fmtS(itEditCfg[f.k])}</div>
-                                <button onClick={function(){adj(f.k,+(f.k==="rounds"?1:5));}} style={{width:36,height:32,background:"transparent",border:"none",color:C.text,fontSize:18,cursor:"pointer",fontWeight:700}}>+</button>
+                              <div style={{fontSize:12,color:f.color,fontWeight:800,width:54}}>{f.label}</div>
+                              <div style={{display:"flex",alignItems:"center",background:"rgba(0,0,0,0.35)",borderRadius:12,overflow:"hidden",border:"1px solid rgba(255,255,255,0.08)"}}>
+                                <button onClick={function(){adj(f.k,-((f.k==="rounds")?1:5));}} style={{width:38,height:34,background:"transparent",border:"none",color:C.text,fontSize:20,cursor:"pointer",fontWeight:700}}>−</button>
+                                <div style={{width:64,textAlign:"center",fontSize:13,fontWeight:900,color:f.color}}>{f.k==="rounds"?itEditCfg[f.k]:fmtS(itEditCfg[f.k])}</div>
+                                <button onClick={function(){adj(f.k,+(f.k==="rounds"?1:5));}} style={{width:38,height:34,background:"transparent",border:"none",color:C.text,fontSize:20,cursor:"pointer",fontWeight:700}}>+</button>
                               </div>
                             </div>
                           );
                         })}
-                        <button onClick={function(){setItCfg(itEditCfg);setItEdit(false);}} style={{marginTop:4,padding:"9px",borderRadius:12,border:"none",background:"linear-gradient(135deg,"+C.amber+","+C.pink+")",color:"#000",fontSize:12,fontWeight:800,cursor:"pointer"}}>Save Settings</button>
+                        <button onClick={function(){setItCfg(itEditCfg);setItEdit(false);}} style={{marginTop:2,padding:"10px",borderRadius:14,border:"none",background:"linear-gradient(135deg,"+C.amber+","+C.pink+")",color:"#000",fontSize:12,fontWeight:900,cursor:"pointer",boxShadow:"0 4px 16px "+C.amber+"44"}}>✓ Save Settings</button>
                       </div>
                     );
                   })()}
 
-                  {/* Timer display */}
-                  <div style={{padding:"16px 16px 18px",display:"flex",alignItems:"center",gap:20}}>
-                    {/* SVG ring */}
-                    <div style={{position:"relative",flexShrink:0,width:112,height:112}}>
-                      <svg width="112" height="112" style={{transform:"rotate(-90deg)"}}>
-                        <circle cx="56" cy="56" r={r} fill="none" stroke="rgba(255,255,255,0.07)" strokeWidth="8"/>
-                        <circle cx="56" cy="56" r={r} fill="none"
-                          stroke={isDone?C.green:isActive?col:"rgba(255,255,255,0.18)"}
-                          strokeWidth="8" strokeLinecap="round"
+                  {/* Timer body */}
+                  <div style={{padding:"18px 16px 20px",display:"flex",alignItems:"center",gap:20}}>
+                    {/* Ring */}
+                    <div style={{position:"relative",flexShrink:0,width:118,height:118}}>
+                      {isActive&&<div style={{position:"absolute",inset:-6,borderRadius:"50%",background:col+"18",filter:"blur(10px)",pointerEvents:"none"}}/>}
+                      <svg width="118" height="118" style={{transform:"rotate(-90deg)"}}>
+                        <circle cx="59" cy="59" r={r} fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth="9"/>
+                        <circle cx="59" cy="59" r={r} fill="none"
+                          stroke={isDone?C.green:isActive?col:"rgba(255,255,255,0.2)"}
+                          strokeWidth="9" strokeLinecap="round"
                           strokeDasharray={circ}
                           strokeDashoffset={isActive?(circ-dash):0}
-                          style={{transition:"stroke-dashoffset 0.9s linear,stroke 0.4s"}}
+                          style={{transition:"stroke-dashoffset 0.9s linear,stroke 0.4s",filter:isActive?"drop-shadow(0 0 6px "+col+")":"none"}}
                         />
                       </svg>
                       <div style={{position:"absolute",inset:0,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center"}}>
                         {isDone
-                          ?<div style={{fontSize:30}}>🎉</div>
-                          :<div style={{fontSize:30,fontWeight:900,fontVariantNumeric:"tabular-nums",color:isActive?col:C.text,transition:"color 0.4s"}}>{isActive?itSec:itCfg.work}</div>
+                          ?<div style={{fontSize:32}}>🎉</div>
+                          :<div style={{fontSize:32,fontWeight:900,fontVariantNumeric:"tabular-nums",color:isActive?col:"#fff",transition:"color 0.4s",textShadow:isActive?"0 0 20px "+col:"none"}}>{isActive?itSec:itCfg.work}</div>
                         }
-                        <div style={{fontSize:9,color:C.muted,fontWeight:700,letterSpacing:1,marginTop:1}}>{isDone?"DONE!":isActive?(itMode==="work"?"WORK":"REST"):"SEC"}</div>
+                        <div style={{fontSize:9,color:isActive?col:C.muted,fontWeight:800,letterSpacing:1.5,marginTop:2}}>{isDone?"DONE!":isActive?(itMode==="work"?"WORK":"REST"):"SEC"}</div>
                       </div>
                     </div>
 
-                    {/* Right info */}
-                    <div style={{flex:1,display:"flex",flexDirection:"column",gap:10}}>
+                    {/* Right stats + button */}
+                    <div style={{flex:1,display:"flex",flexDirection:"column",gap:8}}>
                       {isDone
-                        ?<div style={{textAlign:"center"}}>
-                          <div style={{fontSize:22,fontWeight:900,color:C.green}}>Complete!</div>
-                          <div style={{fontSize:12,color:C.muted,marginTop:4}}>{itCfg.rounds} rounds · {Math.round((itCfg.work+itCfg.rest)*itCfg.rounds/60)} min total</div>
+                        ?<div style={{textAlign:"center",padding:"8px 0"}}>
+                          <div style={{fontSize:24,fontWeight:900,color:C.green,textShadow:"0 0 20px "+C.green+"88"}}>Complete!</div>
+                          <div style={{fontSize:12,color:C.muted,marginTop:6}}>{itCfg.rounds} rounds · {Math.round((itCfg.work+itCfg.rest)*itCfg.rounds/60)} min total</div>
                         </div>
                         :(function(){
                           var phases=[{l:"Work",v:itCfg.work+"s",c:C.amber},{l:"Rest",v:itCfg.rest+"s",c:C.cyan},{l:"Round",v:(isActive?itRound+1:1)+"/"+itCfg.rounds,c:C.purple}];
-                          return phases.map(function(p,i){
-                            return(
-                              <div key={i} style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-                                <div style={{fontSize:11,color:C.muted,fontWeight:600}}>{p.l}</div>
-                                <div style={{fontSize:13,fontWeight:800,color:p.c}}>{p.v}</div>
-                              </div>
-                            );
-                          });
+                          return <div style={{display:"flex",flexDirection:"column",gap:6}}>
+                            {phases.map(function(p,i){
+                              return(
+                                <div key={i} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"4px 10px",borderRadius:10,background:"rgba(255,255,255,0.04)"}}>
+                                  <div style={{fontSize:11,color:C.muted,fontWeight:600}}>{p.l}</div>
+                                  <div style={{fontSize:14,fontWeight:900,color:p.c}}>{p.v}</div>
+                                </div>
+                              );
+                            })}
+                          </div>;
                         })()
                       }
-
-                      {/* Start / pause button */}
                       {!isDone&&<button onClick={function(){
-                        if(itMode==="idle"){
-                          setItMode("work");
-                          setItSec(itCfg.work);
-                          setItRound(0);
-                        } else {
-                          // toggle pause — reset to idle
-                          setItMode("idle");
-                          setItRound(0);
-                          setItSec(0);
-                        }
+                        if(itMode==="idle"){setItMode("work");setItSec(itCfg.work);setItRound(0);}
+                        else{setItMode("idle");setItRound(0);setItSec(0);}
                       }} style={{
-                        padding:"10px",borderRadius:14,border:"none",cursor:"pointer",fontWeight:800,fontSize:13,
+                        padding:"12px",borderRadius:16,border:"none",cursor:"pointer",fontWeight:900,fontSize:14,
                         background:isActive?"linear-gradient(135deg,"+C.red+","+C.pink+")":"linear-gradient(135deg,"+C.amber+","+C.pink+")",
-                        color:"#000",marginTop:2,boxShadow:isActive?"0 4px 16px "+C.red+"44":"0 4px 16px "+C.amber+"44"
+                        color:"#000",marginTop:4,
+                        boxShadow:isActive?"0 4px 20px "+C.red+"55":"0 4px 20px "+C.amber+"55",
+                        letterSpacing:0.5
                       }}>{isActive?"⏸ Pause":"▶ Start"}</button>}
                     </div>
                   </div>
 
                   {/* Round dots */}
-                  {(isActive||isDone)&&(function(){
-                    return(
-                      <div style={{display:"flex",justifyContent:"center",gap:5,paddingBottom:14,flexWrap:"wrap",paddingLeft:12,paddingRight:12}}>
-                        {Array.from({length:itCfg.rounds}).map(function(_,i){
-                          var done=isDone||(i<itRound)||(i===itRound&&itMode==="rest");
-                          var active=!isDone&&i===itRound&&itMode==="work";
-                          return(
-                            <div key={i} style={{
-                              width:active?10:7,height:active?10:7,borderRadius:"50%",
-                              background:done?C.green:active?C.amber:"rgba(255,255,255,0.15)",
-                              boxShadow:active?"0 0 8px "+C.amber:"none",
-                              transition:"all 0.3s",marginTop:active?-1.5:0
-                            }}/>
-                          );
-                        })}
-                      </div>
-                    );
-                  })()}
+                  {(isActive||isDone)&&<div style={{display:"flex",justifyContent:"center",gap:6,paddingBottom:16,flexWrap:"wrap",paddingLeft:14,paddingRight:14}}>
+                    {Array.from({length:itCfg.rounds}).map(function(_,i){
+                      var done=isDone||(i<itRound)||(i===itRound&&itMode==="rest");
+                      var active=!isDone&&i===itRound&&itMode==="work";
+                      return <div key={i} style={{
+                        width:active?12:7,height:active?12:7,borderRadius:"50%",
+                        background:done?C.green:active?C.amber:"rgba(255,255,255,0.12)",
+                        boxShadow:active?"0 0 10px "+C.amber:done?"0 0 6px "+C.green+"88":"none",
+                        transition:"all 0.3s",marginTop:active?-2.5:0
+                      }}/>;
+                    })}
+                  </div>}
                 </div>
               );
             })()}
 
             {/* Workout History */}
-            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
-              <div style={{fontSize:12,color:C.muted,fontWeight:600,letterSpacing:0.5}}>RECENT WORKOUTS</div>
-              <button onClick={function(){setShowAddWorkout(true);}} style={{display:"flex",alignItems:"center",gap:4,background:C.green+"18",border:"1px solid "+C.green+"44",borderRadius:14,padding:"5px 12px",cursor:"pointer",fontSize:11,fontWeight:800,color:C.green}}>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12,marginTop:6}}>
+              <div style={{display:"flex",alignItems:"center",gap:8}}>
+                <div style={{width:28,height:28,borderRadius:9,background:"rgba(255,255,255,0.08)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:14}}>📋</div>
+                <div style={{fontSize:12,color:C.text,fontWeight:900,letterSpacing:1}}>RECENT WORKOUTS</div>
+              </div>
+              <button onClick={function(){setShowAddWorkout(true);}} style={{display:"flex",alignItems:"center",gap:5,background:"linear-gradient(135deg,"+C.green+"cc,#00c853cc)",border:"none",borderRadius:14,padding:"7px 14px",cursor:"pointer",fontSize:11,fontWeight:900,color:"#000",boxShadow:"0 4px 14px "+C.green+"44"}}>
                 + Log Workout
               </button>
             </div>
-            <div style={{display:"flex",flexDirection:"column",gap:8,marginBottom:4}}>
+            <div style={{display:"flex",flexDirection:"column",gap:10,marginBottom:4}}>
               {workoutHistory.slice(0,5).map(function(w,i){
                 var isOpen=expandedWorkout===i;
                 var isSt=w.type==="Strength"||w.type==="Weights"||!!(w.sets&&w.sets.length);
                 return(
-                  <div key={i} style={{borderRadius:16,background:"rgba(255,255,255,0.04)",border:"1px solid "+(isOpen?w.color+"44":"rgba(255,255,255,0.07)"),overflow:"hidden",transition:"border 0.2s"}}>
+                  <div key={i} style={{borderRadius:20,background:isOpen?"linear-gradient(145deg,"+w.color+"18,rgba(0,0,0,0.25))":"rgba(255,255,255,0.05)",border:"1px solid "+(isOpen?w.color+"55":"rgba(255,255,255,0.09)"),overflow:"hidden",transition:"all 0.3s",boxShadow:isOpen?"0 4px 24px "+w.color+"22":"none"}}>
                     {/* Header row — tap to expand */}
-                    <div onClick={function(){setExpandedWorkout(isOpen?null:i);}} style={{display:"flex",alignItems:"center",gap:12,padding:"12px 14px",cursor:"pointer"}}>
-                      <div style={{width:42,height:42,borderRadius:14,background:w.color+"18",border:"1px solid "+w.color+"33",display:"flex",alignItems:"center",justifyContent:"center",fontSize:20,flexShrink:0}}>{w.icon}</div>
+                    <div onClick={function(){setExpandedWorkout(isOpen?null:i);}} style={{display:"flex",alignItems:"center",gap:12,padding:"13px 15px",cursor:"pointer"}}>
+                      <div style={{width:46,height:46,borderRadius:16,background:w.color+"22",border:"1px solid "+w.color+"44",display:"flex",alignItems:"center",justifyContent:"center",fontSize:22,flexShrink:0,boxShadow:"0 2px 12px "+w.color+"22"}}>{w.icon}</div>
                       <div style={{flex:1}}>
-                        <div style={{fontSize:13,fontWeight:800,color:C.text}}>{w.type}</div>
-                        <div style={{fontSize:11,color:C.muted,marginTop:2}}>{w.date} · {w.duration}</div>
+                        <div style={{fontSize:14,fontWeight:900,color:C.text}}>{w.type}</div>
+                        <div style={{fontSize:11,color:C.muted,marginTop:3}}>{w.date} · {w.duration}</div>
                       </div>
                       <div style={{textAlign:"right",marginRight:4}}>
-                        <div style={{fontSize:13,fontWeight:700,color:w.color}}>{w.cals} kcal</div>
-                        <div style={{fontSize:11,color:C.muted}}>{w.dist||"—"}</div>
+                        <div style={{fontSize:14,fontWeight:900,color:w.color,textShadow:"0 0 12px "+w.color+"44"}}>{w.cals} kcal</div>
+                        <div style={{fontSize:11,color:C.muted,marginTop:2}}>{w.dist||"—"}</div>
                       </div>
-                      <div style={{fontSize:12,color:C.muted,transition:"transform 0.2s",transform:isOpen?"rotate(180deg)":"none"}}>▾</div>
+                      <div style={{width:24,height:24,borderRadius:8,background:"rgba(255,255,255,0.07)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,color:C.muted,transition:"transform 0.25s",transform:isOpen?"rotate(180deg)":"none"}}>▾</div>
                     </div>
                     {/* Expanded detail */}
                     {isOpen&&<div style={{padding:"0 14px 14px",borderTop:"1px solid rgba(255,255,255,0.06)"}}>
@@ -3004,6 +2994,7 @@ function MainApp({initProfile}){
                   value={friendSearch}
                   onChange={function(e){setFriendSearch(e.target.value);}}
                   placeholder="Search contacts by name…"
+                  className="white-placeholder"
                   style={{width:"100%",padding:"11px 14px",borderRadius:14,border:"1px solid "+C.border,background:"rgba(255,255,255,0.07)",color:C.text,fontSize:13,outline:"none",boxSizing:"border-box",marginBottom:14}}
                 />
                 <div style={{display:"flex",flexDirection:"column",gap:8,maxHeight:240,overflowY:"auto"}}>
@@ -3612,7 +3603,7 @@ function MainApp({initProfile}){
                   {/* Active pill highlight behind button */}
                   {active&&<div style={{position:"absolute",inset:"3px 4px",borderRadius:26,background:"linear-gradient(145deg,"+t.grad[0]+"1A,"+t.grad[1]+"0F)",border:"1px solid "+t.grad[0]+"28",zIndex:0}}/>}
                   {/* Icon container */}
-                  <div style={{position:"relative",zIndex:1,width:42,height:42,borderRadius:18,display:"flex",alignItems:"center",justifyContent:"center",background:active?"linear-gradient(145deg,"+t.grad[0]+"30,"+t.grad[1]+"1A)":"rgba(255,255,255,0.07)",border:active?"1px solid "+t.grad[0]+"50":"1px solid rgba(255,255,255,0.12)",boxShadow:active?"0 4px 20px "+t.grad[0]+"44,0 0 0 1px "+t.grad[0]+"18,inset 0 1px 0 rgba(255,255,255,0.15)":"inset 0 1px 0 rgba(255,255,255,0.04)",animation:active?"navPop 0.32s cubic-bezier(0.34,1.56,0.64,1)":"none"}}>
+                  <div style={{position:"relative",zIndex:1,width:42,height:42,borderRadius:18,display:"flex",alignItems:"center",justifyContent:"center",background:active?"linear-gradient(145deg,"+t.grad[0]+"30,"+t.grad[1]+"1A)":"transparent",border:active?"1px solid "+t.grad[0]+"50":"none",boxShadow:active?"0 4px 20px "+t.grad[0]+"44,0 0 0 1px "+t.grad[0]+"18,inset 0 1px 0 rgba(255,255,255,0.15)":"none",animation:active?"navPop 0.32s cubic-bezier(0.34,1.56,0.64,1)":"none"}}>
                     <svg viewBox="0 0 24 24" width={active?22:19} height={active?22:19} style={{filter:active?"drop-shadow(0 0 6px "+t.grad[0]+"cc) drop-shadow(0 0 12px "+t.grad[0]+"55)":"none",transition:"all 0.28s ease"}}>
                       <defs><linearGradient id={"ng3"+t.id} x1="0%" y1="0%" x2="100%" y2="100%">
                         <stop offset="0%" stopColor={active?t.grad[0]:"rgba(255,255,255,0.55)"}/><stop offset="100%" stopColor={active?t.grad[1]:"rgba(255,255,255,0.40)"}/>
