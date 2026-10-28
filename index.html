@@ -789,6 +789,7 @@ function MainApp({initProfile}){
   const [gpsDist,setGpsDist]=useState(0);      // metres
   const [gpsErr,setGpsErr]=useState(null);
   const [gpsStatus,setGpsStatus]=useState("idle"); // idle|acquiring|tracking|denied
+  const [gpsPaused,setGpsPaused]=useState(false);
 
   // ── Interval Timer state ──
   const [itCfg,setItCfg]=useState({work:40,rest:20,rounds:8});
@@ -1098,15 +1099,19 @@ function MainApp({initProfile}){
 
   // Workout timer
   useEffect(function(){
-    if(!workout) return;
+    if(!workout||gpsPaused) return;
     var iv=setInterval(function(){setWTime(function(t){return t+1;});},1000);
     return function(){clearInterval(iv);};
-  },[workout]);
+  },[workout,gpsPaused]);
 
-  // Real GPS tracking — runs while workout is active
+  // Real GPS tracking — runs while workout is active and not paused
   useEffect(function(){
     if(!workout){
-      setGpsCoords([]);setGpsDist(0);setGpsStatus("idle");setGpsErr(null);
+      setGpsCoords([]);setGpsDist(0);setGpsStatus("idle");setGpsErr(null);setGpsPaused(false);
+      return;
+    }
+    if(gpsPaused){
+      setGpsStatus("idle");
       return;
     }
     if(!navigator.geolocation){setGpsErr("GPS not supported on this device");setGpsStatus("denied");return;}
@@ -1118,13 +1123,11 @@ function MainApp({initProfile}){
           var newPt={lat:pos.coords.latitude,lng:pos.coords.longitude,ts:Date.now(),acc:pos.coords.accuracy};
           if(prev.length===0) return [newPt];
           var last=prev[prev.length-1];
-          // Haversine distance in metres
           var R=6371000;
           var dLat=(newPt.lat-last.lat)*Math.PI/180;
           var dLng=(newPt.lng-last.lng)*Math.PI/180;
           var a=Math.sin(dLat/2)*Math.sin(dLat/2)+Math.cos(last.lat*Math.PI/180)*Math.cos(newPt.lat*Math.PI/180)*Math.sin(dLng/2)*Math.sin(dLng/2);
           var seg=R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));
-          // Ignore jitter (< 10 m or accuracy worse than 20 m)
           if(seg<10||pos.coords.accuracy>20) return prev;
           setGpsDist(function(d){return d+seg;});
           return prev.concat([newPt]);
@@ -1137,7 +1140,7 @@ function MainApp({initProfile}){
       {enableHighAccuracy:true,maximumAge:2000,timeout:15000}
     );
     return function(){navigator.geolocation.clearWatch(watchId);};
-  },[workout]);
+  },[workout,gpsPaused]);
 
   // Leaflet map — initialize/update (must be at top level, not inside IIFE)
   useEffect(function(){
@@ -1728,108 +1731,124 @@ function MainApp({initProfile}){
 
         {/* TRACK TAB */}
         {tab==="track"&&<div style={{display:"flex",flexDirection:"column",gap:14}}>
-          {workout?<div style={{margin:"0 -16px",position:"relative",minHeight:"calc(100vh - 80px)",background:"#111",display:"flex",flexDirection:"column"}}>
-            {/* Header bar */}
-            <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"14px 18px 10px",background:"#111"}}>
-              <button onClick={function(){setWorkout(null);setWTime(0);setGpsCoords([]);setGpsDist(0);}} style={{width:36,height:36,borderRadius:12,border:"none",background:"rgba(255,255,255,0.1)",color:"#fff",fontSize:18,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>‹</button>
-              <div style={{fontSize:16,fontWeight:800,color:"#fff"}}>{workout}</div>
-              <button style={{width:36,height:36,borderRadius:12,border:"none",background:"rgba(255,255,255,0.1)",color:"#fff",fontSize:18,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>⋮</button>
-            </div>
+          {workout?(function(){
+            var isPaused=gpsPaused;
+            var isTracking=gpsStatus==="tracking"&&!gpsPaused;
+            var distKm=(gpsDist/1000).toFixed(2);
+            var paceStr="--";
+            if(gpsDist>50&&wTime>10){var secPerKm=wTime/(gpsDist/1000);paceStr=Math.floor(secPerKm/60)+":"+(Math.floor(secPerKm%60)<10?"0":"")+Math.floor(secPerKm%60);}
+            var speedVal=wTime>5&&gpsDist>10?((gpsDist/1000)/(wTime/3600)).toFixed(1):null;
+            var burnRate={Running:8,Cycling:7,HIIT:10,Yoga:3,Swimming:8,Strength:5,Walking:4};
+            var cals=Math.round((burnRate[workout]||6)*(wTime/60));
+            var workoutSteps=Math.max(0,steps-workoutStepsStart.current);
+            var BG="rgba(30,80,180,0.97)"; // blue theme background for stats area
+            var CARD="rgba(255,255,255,0.10)";
+            var LABEL={fontSize:12,color:"rgba(255,255,255,0.6)",fontWeight:600,marginBottom:6,textTransform:"uppercase",letterSpacing:0.5};
+            var VAL={fontSize:28,fontWeight:800,color:"#fff",fontVariantNumeric:"tabular-nums",lineHeight:1.1};
 
-            {/* Full map */}
-            {(function(){
-              var isTracking=gpsStatus==="tracking";
-              var isPaused=gpsStatus==="idle"&&wTime>0;
-              var statusColor=isTracking?C.green:gpsStatus==="acquiring"?C.amber:"#888";
-              var statusLabel=isPaused?"Paused":isTracking?"Live":gpsStatus==="acquiring"?"Acquiring…":"Waiting…";
-              return(
-                <div style={{position:"relative",height:320,background:"#1a1a2e"}}>
+
+            return(
+              <div style={{margin:"0 -16px",position:"relative",minHeight:"calc(100vh - 80px)",background:BG,display:"flex",flexDirection:"column"}}>
+
+                {/* ── MAP fills top — large ── */}
+                <div style={{position:"relative",height:"45vh",minHeight:220,background:"#1a2a3a",flexShrink:0}}>
                   <div id="sfLeafletMap" style={{width:"100%",height:"100%"}}/>
-                  {/* Paused / acquiring overlay */}
-                  {(isPaused||gpsStatus==="acquiring")&&(
-                    <div style={{position:"absolute",top:12,left:14,display:"flex",alignItems:"center",gap:6,background:"rgba(0,0,0,0.7)",borderRadius:20,padding:"5px 12px",zIndex:1000}}>
-                      <div style={{width:8,height:8,borderRadius:"50%",background:isPaused?"#888":C.amber}}/>
-                      <span style={{fontSize:11,fontWeight:700,color:"#fff"}}>{statusLabel}</span>
+
+                  {/* Back button top-left */}
+                  <button onClick={function(){
+                    setWorkout(null);setWTime(0);setGpsCoords([]);setGpsDist(0);setGpsStatus("idle");setGpsPaused(false);
+                  }} style={{position:"absolute",top:14,left:14,width:38,height:38,borderRadius:"50%",border:"none",background:"rgba(0,0,0,0.55)",color:"#fff",fontSize:20,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",zIndex:1001,backdropFilter:"blur(4px)"}}>‹</button>
+
+                  {/* Workout title top-center */}
+                  <div style={{position:"absolute",top:18,left:"50%",transform:"translateX(-50%)",background:"rgba(0,0,0,0.55)",borderRadius:20,padding:"4px 16px",zIndex:1001,backdropFilter:"blur(4px)"}}>
+                    <span style={{fontSize:13,fontWeight:800,color:"#fff"}}>{workout}</span>
+                  </div>
+
+                  {/* Status pill */}
+                  {(isPaused||isTracking||gpsStatus==="acquiring")&&(
+                    <div style={{position:"absolute",top:14,right:14,display:"flex",alignItems:"center",gap:5,background:"rgba(0,0,0,0.65)",borderRadius:20,padding:"5px 12px",zIndex:1001}}>
+                      <div style={{width:7,height:7,borderRadius:"50%",background:isTracking?C.green:isPaused?"#aaa":C.amber,animation:isTracking?"proPulse 1.2s ease-in-out infinite":"none"}}/>
+                      <span style={{fontSize:11,fontWeight:700,color:isTracking?C.green:isPaused?"#ccc":C.amber}}>{isTracking?"Live GPS":isPaused?"Paused":"Acquiring…"}</span>
                     </div>
                   )}
-                  {isTracking&&(
-                    <div style={{position:"absolute",top:12,left:14,display:"flex",alignItems:"center",gap:6,background:"rgba(0,0,0,0.7)",borderRadius:20,padding:"5px 12px",zIndex:1000}}>
-                      <div style={{width:8,height:8,borderRadius:"50%",background:C.green,animation:"proPulse 1.2s ease-in-out infinite"}}/>
-                      <span style={{fontSize:11,fontWeight:700,color:C.green}}>Live</span>
+
+                  {/* Recenter + Layers */}
+                  <button style={{position:"absolute",bottom:60,right:12,width:38,height:38,borderRadius:"50%",border:"none",background:"rgba(20,20,20,0.85)",color:"#fff",fontSize:18,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",zIndex:1001,boxShadow:"0 2px 8px rgba(0,0,0,0.5)"}}>⊕</button>
+                  <button style={{position:"absolute",bottom:14,right:12,width:38,height:38,borderRadius:"50%",border:"none",background:"rgba(20,20,20,0.85)",color:"#fff",fontSize:16,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",zIndex:1001,boxShadow:"0 2px 8px rgba(0,0,0,0.5)"}}>⊞</button>
+                </div>
+
+                {/* ── STAT CARDS ── */}
+                <div style={{flex:1,padding:"14px 12px 8px",display:"flex",flexDirection:"column",gap:8,overflowY:"auto"}}>
+
+                  {/* Row 1: Duration + Distance — bigger numbers */}
+                  <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
+                    <div style={{background:CARD,borderRadius:18,padding:"16px 14px"}}>
+                      <div style={LABEL}>Duration</div>
+                      <div style={{...VAL,fontSize:32}}>{fmt(wTime)}</div>
                     </div>
-                  )}
-                  {/* Recenter button */}
-                  <button style={{position:"absolute",top:12,right:14,width:38,height:38,borderRadius:"50%",border:"none",background:"rgba(30,30,30,0.9)",color:"#fff",fontSize:18,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",zIndex:1000,boxShadow:"0 2px 8px rgba(0,0,0,0.5)"}}>⊕</button>
-                  {/* Layers button */}
-                  <button style={{position:"absolute",top:58,right:14,width:38,height:38,borderRadius:"50%",border:"none",background:"rgba(30,30,30,0.9)",color:"#fff",fontSize:16,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",zIndex:1000,boxShadow:"0 2px 8px rgba(0,0,0,0.5)"}}>⊞</button>
-                </div>
-              );
-            })()}
+                    <div style={{background:CARD,borderRadius:18,padding:"16px 14px"}}>
+                      <div style={LABEL}>Distance</div>
+                      <div style={VAL}>{gpsDist>0?distKm:"0.00"}<span style={{fontSize:14,fontWeight:600,marginLeft:4}}>km</span></div>
+                    </div>
+                  </div>
 
-            {/* Stats cards — Duration full width, then 2×2 grid */}
-            {(function(){
-              var distKm=(gpsDist/1000).toFixed(2);
-              var paceStr="-- /km";
-              if(gpsDist>50&&wTime>10){var secPerKm=wTime/(gpsDist/1000);paceStr=Math.floor(secPerKm/60)+":"+(Math.floor(secPerKm%60)<10?"0":"")+Math.floor(secPerKm%60)+" /km";}
-              var speed=wTime>5&&gpsDist>10?((gpsDist/1000)/(wTime/3600)).toFixed(1)+" km/h":"0.0 km/h";
-              var burnRate={Running:8,Cycling:7,HIIT:10,Yoga:3,Swimming:8,Strength:5,Walking:4};
-              var cals=Math.round((burnRate[workout]||6)*(wTime/60));
-              var cardStyle={background:"#1c1c1c",padding:"20px 16px",textAlign:"left",borderRadius:14};
-              var labelStyle={fontSize:12,color:"#888",fontWeight:500,marginBottom:8};
-              var valStyle={fontSize:28,fontWeight:700,color:"#fff",fontVariantNumeric:"tabular-nums"};
-              return(
-                <div style={{background:"#111",padding:"8px 10px 4px",display:"flex",flexDirection:"column",gap:6}}>
-                  {/* Duration — full width */}
-                  <div style={{...cardStyle,padding:"24px 20px"}}>
-                    <div style={{...labelStyle}}>Duration</div>
-                    <div style={{...valStyle,fontSize:42}}>{fmt(wTime)}</div>
+                  {/* Row 2: Speed + Steps */}
+                  <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
+                    <div style={{background:CARD,borderRadius:18,padding:"16px 14px"}}>
+                      <div style={LABEL}>Speed</div>
+                      <div style={VAL}>{speedVal||"--"}<span style={{fontSize:14,fontWeight:600,marginLeft:4}}>km/h</span></div>
+                    </div>
+                    <div style={{background:CARD,borderRadius:18,padding:"16px 14px"}}>
+                      <div style={LABEL}>Steps</div>
+                      <div style={VAL}>{workoutSteps.toLocaleString()}</div>
+                    </div>
                   </div>
-                  {/* Row 1: Distance + Speed */}
-                  <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:6}}>
-                    <div style={cardStyle}><div style={labelStyle}>Distance</div><div style={valStyle}>{gpsDist>0?distKm+" km":"0.00 km"}</div></div>
-                    <div style={cardStyle}><div style={labelStyle}>Speed</div><div style={valStyle}>{speed}</div></div>
+
+                  {/* Row 3: Pace + Calories */}
+                  <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
+                    <div style={{background:CARD,borderRadius:18,padding:"16px 14px"}}>
+                      <div style={LABEL}>Pace</div>
+                      <div style={VAL}>{paceStr}<span style={{fontSize:14,fontWeight:600,marginLeft:4}}>/km</span></div>
+                    </div>
+                    <div style={{background:CARD,borderRadius:18,padding:"16px 14px"}}>
+                      <div style={LABEL}>Calories</div>
+                      <div style={VAL}>{cals}<span style={{fontSize:14,fontWeight:600,marginLeft:4}}>kcal</span></div>
+                    </div>
                   </div>
-                  {/* Row 2: Steps + Pace */}
-                  <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:6}}>
-                    <div style={cardStyle}><div style={labelStyle}>Steps</div><div style={valStyle}>{Math.max(0,steps-workoutStepsStart.current).toLocaleString()}</div></div>
-                    <div style={cardStyle}><div style={labelStyle}>Pace</div><div style={valStyle}>{paceStr}</div></div>
-                  </div>
-                  {/* Row 3: Elevation + Calories */}
-                  <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:6}}>
-                    <div style={cardStyle}><div style={labelStyle}>Elevation</div><div style={valStyle}>0 m</div></div>
-                    <div style={cardStyle}><div style={labelStyle}>Calories</div><div style={valStyle}>{cals>0?cals+" kcal":"0 kcal"}</div></div>
+
+                  {/* 2 dots */}
+                  <div style={{display:"flex",justifyContent:"center",gap:6,padding:"6px 0"}}>
+                    <div style={{width:8,height:8,borderRadius:"50%",background:"rgba(255,255,255,0.9)"}}/>
+                    <div style={{width:8,height:8,borderRadius:"50%",background:"rgba(255,255,255,0.25)"}}/>
                   </div>
                 </div>
-              );
-            })()}
 
-            {/* 2 dot indicators */}
-            <div style={{display:"flex",justifyContent:"center",gap:6,padding:"14px 0",background:"#111"}}>
-              <div style={{width:8,height:8,borderRadius:"50%",background:"#fff"}}/>
-              <div style={{width:8,height:8,borderRadius:"50%",background:"#444"}}/>
-            </div>
+                {/* ── BOTTOM BUTTONS ── */}
+                <div style={{display:"flex",alignItems:"center",gap:12,padding:"10px 16px 32px",flexShrink:0}}>
+                  {/* Pause / Resume */}
+                  <button onClick={function(){setGpsPaused(function(p){return !p;});}} style={{flex:1,padding:"17px",borderRadius:50,border:"none",background:"rgba(255,255,255,0.18)",color:"#fff",fontSize:16,fontWeight:700,cursor:"pointer",backdropFilter:"blur(4px)"}}>
+                    {gpsPaused?"Resume":"Pause"}
+                  </button>
+                  {/* Finish */}
+                  <button onClick={function(){
+                    var mins=Math.round(wTime/60)||1;
+                    var burnRate2={Running:8,Cycling:7,HIIT:10,Yoga:3,Swimming:8,Strength:5,Walking:4};
+                    var burned=Math.round((burnRate2[workout]||6)*mins);
+                    var iconMap={Running:"🏃",Cycling:"🚴",HIIT:"⚡",Yoga:"🧘",Swimming:"🏊",Strength:"💪",Walking:"🚶"};
+                    var realDist=gpsDist>50?(gpsDist/1000).toFixed(2)+" km":null;
+                    var estDistMap={Running:(mins*0.13).toFixed(1)+" km",Cycling:(mins*0.35).toFixed(1)+" km",Walking:(mins*0.08).toFixed(1)+" km",Swimming:(mins*0.05).toFixed(1)+" km",HIIT:"—",Yoga:"—",Strength:"—"};
+                    var dist=realDist||estDistMap[workout]||"—";
+                    var entry={type:workout,icon:iconMap[workout]||"🏋️",date:"Today",duration:mins+" min",cals:burned,dist:dist,color:C.green};
+                    setWorkoutSummary({entry:entry,mins:mins,burned:burned,dist:dist});
+                    setWorkout(null);setWTime(0);setGpsCoords([]);setGpsDist(0);setGpsStatus("idle");setGpsPaused(false);
+                  }} style={{flex:1,padding:"17px",borderRadius:50,border:"none",background:"#C0392B",color:"#fff",fontSize:16,fontWeight:800,cursor:"pointer",boxShadow:"0 4px 16px rgba(192,57,43,0.45)"}}>
+                    Finish
+                  </button>
+                </div>
 
-            {/* Bottom buttons — Resume + Finish only */}
-            <div style={{display:"flex",alignItems:"center",gap:10,padding:"12px 16px 28px",background:"#111",marginTop:"auto"}}>
-              <button onClick={function(){}} style={{flex:1,padding:"16px",borderRadius:50,border:"none",background:"#333",color:"#fff",fontSize:15,fontWeight:700,cursor:"pointer"}}>
-                {gpsStatus==="tracking"?"Pause":"Resume"}
-              </button>
-              <button onClick={function(){
-                var mins=Math.round(wTime/60)||1;
-                var burnRate={Running:8,Cycling:7,HIIT:10,Yoga:3,Swimming:8,Strength:5,Walking:4};
-                var burned=Math.round((burnRate[workout]||6)*mins);
-                var iconMap={Running:"🏃",Cycling:"🚴",HIIT:"⚡",Yoga:"🧘",Swimming:"🏊",Strength:"💪",Walking:"🚶"};
-                var realDist=gpsDist>50?(gpsDist/1000).toFixed(2)+" km":null;
-                var estDistMap={Running:(mins*0.13).toFixed(1)+" km",Cycling:(mins*0.35).toFixed(1)+" km",Walking:(mins*0.08).toFixed(1)+" km",Swimming:(mins*0.05).toFixed(1)+" km",HIIT:"—",Yoga:"—",Strength:"—"};
-                var dist=realDist||estDistMap[workout]||"—";
-                var entry={type:workout,icon:iconMap[workout]||"🏋️",date:"Today",duration:mins+" min",cals:burned,dist:dist,color:C.green};
-                setWorkoutSummary({entry:entry,mins:mins,burned:burned,dist:dist});
-                setWorkout(null);setWTime(0);setGpsCoords([]);setGpsDist(0);
-              }} style={{flex:1,padding:"16px",borderRadius:50,border:"none",background:"#C0392B",color:"#fff",fontSize:15,fontWeight:800,cursor:"pointer"}}>
-                Finish
-              </button>
-            </div>
-          </div>:<div style={{display:"flex",flexDirection:"column",gap:14}}>
+              </div>
+            );
+          })():<div style={{display:"flex",flexDirection:"column",gap:14}}>
             {/* Workout types */}
             <div style={{fontSize:12,color:C.muted,fontWeight:600,letterSpacing:0.5,marginBottom:2}}>START WORKOUT</div>
             <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
