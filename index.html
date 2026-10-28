@@ -777,6 +777,7 @@ function MainApp({initProfile}){
   const [downloadingMap,setDownloadingMap]=useState(null);
   const [activeChallenge,setActiveChallenge]=useState(null);
   const [showAddFriend,setShowAddFriend]=useState(null);
+  const [inviteSheet,setInviteSheet]=useState(null); // challenge index being invited to
   const [showNotif,setShowNotif]=useState(false);
   const [selectedAward,setSelectedAward]=useState(null);
   const [notifFilter,setNotifFilter]=useState("All");
@@ -2916,9 +2917,35 @@ function MainApp({initProfile}){
                     </div>
                     <Pill color={C.amber} bg={C.amber+"18"}>Creator</Pill>
                   </div>
+                  {/* Participants */}
+                  {ch.participants&&ch.participants>1&&(
+                    <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:10}}>
+                      <div style={{fontSize:11,color:C.muted}}>👥 {ch.participants} participant{ch.participants>1?"s":""}</div>
+                      {ch.invitedNames&&ch.invitedNames.map(function(n,ni){
+                        return <span key={ni} style={{fontSize:10,background:ch.color+"22",color:ch.color,borderRadius:8,padding:"2px 7px",fontWeight:700}}>{n}</span>;
+                      })}
+                    </div>
+                  )}
                   <div style={{display:"flex",gap:8}}>
-                    <button style={{flex:1,padding:"8px",borderRadius:12,border:"1px solid "+C.border,background:"transparent",color:C.muted,fontSize:11,fontWeight:600,cursor:"pointer"}}>🔗 Share Invite</button>
-                    <button onClick={function(){setMyChallenges(function(prev){return prev.filter(function(_,j){return j!==i;});});}} style={{padding:"8px 12px",borderRadius:12,border:"1px solid "+C.red+"44",background:"transparent",color:C.red,fontSize:11,fontWeight:600,cursor:"pointer"}}>Delete</button>
+                    <button onClick={function(){
+                      var url=window.location.origin+window.location.pathname+"?join="+encodeURIComponent(ch.title)+"&goal="+encodeURIComponent(ch.goal)+"&days="+ch.days;
+                      var text="Join my Som Fit challenge!\n🏆 "+ch.title+"\n🎯 "+ch.goal+" in "+ch.days+" days\n\n"+url;
+                      if(navigator.share){
+                        navigator.share({title:"Join my Som Fit Challenge",text:text,url:url}).catch(function(){});
+                      } else {
+                        navigator.clipboard.writeText(text).then(function(){
+                          alert("Invite link copied to clipboard!");
+                        }).catch(function(){
+                          prompt("Copy this invite link:",url);
+                        });
+                      }
+                    }} style={{flex:1,padding:"9px",borderRadius:12,border:"1px solid "+C.border,background:"rgba(255,255,255,0.06)",color:C.text,fontSize:11,fontWeight:700,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:5}}>
+                      🔗 Share Invite
+                    </button>
+                    <button onClick={function(){setInviteSheet(i);}} style={{flex:1,padding:"9px",borderRadius:12,border:"1px solid "+C.green+"55",background:C.green+"12",color:C.green,fontSize:11,fontWeight:700,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:5}}>
+                      👥 Add People
+                    </button>
+                    <button onClick={function(){setMyChallenges(function(prev){return prev.filter(function(_,j){return j!==i;});});}} style={{padding:"9px 12px",borderRadius:12,border:"1px solid "+C.red+"44",background:"transparent",color:C.red,fontSize:11,fontWeight:700,cursor:"pointer"}}>Delete</button>
                   </div>
                 </div>;
               })}
@@ -2963,6 +2990,67 @@ function MainApp({initProfile}){
               }} style={{width:"100%",padding:"14px",borderRadius:16,border:"none",background:"linear-gradient(135deg,"+C.pink+","+C.purple+")",color:"#fff",fontSize:14,fontWeight:900,cursor:"pointer"}}>🚀 Create Challenge</button>
             </div>
           </div>}
+
+          {/* Add People to Challenge sheet */}
+          {inviteSheet!==null&&myChallenges[inviteSheet]&&(function(){
+            var ch=myChallenges[inviteSheet];
+            var already=ch.invitedNames||[];
+            return <div onClick={function(){setInviteSheet(null);setFriendSearch("");}} style={{position:"fixed",inset:0,zIndex:300,background:"rgba(0,0,0,0.75)",backdropFilter:"blur(8px)",display:"flex",alignItems:"flex-end",justifyContent:"center"}}>
+              <div onClick={function(e){e.stopPropagation();}} style={{width:"100%",maxWidth:420,borderRadius:"28px 28px 0 0",background:C.card,border:"1px solid "+C.border,padding:"20px 18px 40px"}}>
+                <div style={{width:40,height:4,borderRadius:2,background:"rgba(255,255,255,0.15)",margin:"0 auto 18px"}}/>
+                <div style={{fontSize:15,fontWeight:900,color:C.text,marginBottom:2}}>Add People</div>
+                <div style={{fontSize:11,color:C.muted,marginBottom:14}}>🏆 {ch.title} · {ch.goal}</div>
+                <input
+                  value={friendSearch}
+                  onChange={function(e){setFriendSearch(e.target.value);}}
+                  placeholder="Search contacts by name…"
+                  style={{width:"100%",padding:"11px 14px",borderRadius:14,border:"1px solid "+C.border,background:"rgba(255,255,255,0.07)",color:C.text,fontSize:13,outline:"none",boxSizing:"border-box",marginBottom:14}}
+                />
+                <div style={{display:"flex",flexDirection:"column",gap:8,maxHeight:240,overflowY:"auto"}}>
+                  {FRIENDS.filter(function(f){
+                    return !f.isMe && (friendSearch===""||f.name.toLowerCase().includes(friendSearch.toLowerCase()));
+                  }).map(function(f,fi){
+                    var added=already.includes(f.name);
+                    return <div key={fi} style={{display:"flex",alignItems:"center",gap:12,padding:"10px 12px",borderRadius:14,background:"rgba(255,255,255,0.05)",border:"1px solid "+(added?C.green+"44":C.border)}}>
+                      <div style={{fontSize:26}}>{f.avatar}</div>
+                      <div style={{flex:1}}>
+                        <div style={{fontSize:13,fontWeight:700,color:C.text}}>{f.name}</div>
+                        <div style={{fontSize:11,color:C.muted}}>{f.steps.toLocaleString()} steps today</div>
+                      </div>
+                      {added
+                        ? <span style={{fontSize:11,color:C.green,fontWeight:800}}>✓ Added</span>
+                        : <button onClick={function(){
+                            setMyChallenges(function(prev){
+                              return prev.map(function(c,ci){
+                                if(ci!==inviteSheet) return c;
+                                var names=(c.invitedNames||[]).concat([f.name]);
+                                return Object.assign({},c,{participants:(c.participants||1)+1,invitedNames:names});
+                              });
+                            });
+                          }} style={{padding:"6px 14px",borderRadius:10,border:"none",background:C.green,color:"#000",fontSize:11,fontWeight:800,cursor:"pointer"}}>Add</button>
+                      }
+                    </div>;
+                  })}
+                  {FRIENDS.filter(function(f){return !f.isMe&&(friendSearch===""||f.name.toLowerCase().includes(friendSearch.toLowerCase()));}).length===0&&(
+                    <div style={{textAlign:"center",padding:"20px 0",color:C.muted,fontSize:12}}>No contacts found</div>
+                  )}
+                </div>
+                {/* Share invite link */}
+                <div style={{marginTop:16,padding:"12px 14px",borderRadius:14,background:"rgba(255,255,255,0.06)",border:"1px solid "+C.border}}>
+                  <div style={{fontSize:11,color:C.muted,marginBottom:6}}>Or share invite link</div>
+                  <button onClick={function(){
+                    var url=window.location.origin+window.location.pathname+"?join="+encodeURIComponent(ch.title)+"&goal="+encodeURIComponent(ch.goal)+"&days="+ch.days;
+                    var text="Join my Som Fit challenge!\n🏆 "+ch.title+"\n🎯 "+ch.goal+" in "+ch.days+" days\n\n"+url;
+                    if(navigator.share){navigator.share({title:"Join my Som Fit Challenge",text:text,url:url}).catch(function(){});}
+                    else{navigator.clipboard.writeText(text).then(function(){alert("Invite link copied!");}).catch(function(){prompt("Copy this link:",url);});}
+                  }} style={{width:"100%",padding:"10px",borderRadius:12,border:"none",background:"linear-gradient(135deg,"+C.green+","+C.cyan+")",color:"#000",fontSize:12,fontWeight:800,cursor:"pointer"}}>
+                    🔗 Share Invite Link
+                  </button>
+                </div>
+                <button onClick={function(){setInviteSheet(null);setFriendSearch("");}} style={{marginTop:12,width:"100%",padding:"11px",borderRadius:14,border:"1px solid "+C.border,background:"transparent",color:C.muted,fontSize:13,fontWeight:700,cursor:"pointer"}}>Done</button>
+              </div>
+            </div>;
+          })()}
 
           {/* Challenge Awards */}
           <div style={{borderRadius:20,padding:18,background:"linear-gradient(145deg,#1460B8,#1565C0,#1460B8)",border:"1px solid "+C.amber+"44",boxShadow:"0 0 30px "+C.amber+"0A"}}>
