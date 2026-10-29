@@ -3467,13 +3467,7 @@ function MainApp({initProfile}){
           });
           // Prepend system context as first user turn if not already
           var contents=[{role:"user",parts:[{text:systemPrompt}]},{role:"model",parts:[{text:"Understood! I'm ready to help as your personal fitness coach."}]}].concat(geminiContents);
-          var key=geminiKey;
-          if(!key){
-            setCoachTyping(false);
-            setCoachMsgs(function(prev){return prev.concat([{role:"ai",text:"⚠️ No API key set. Tap the **🔑** button in the top right to add your Gemini API key."}]);});
-            return;
-          }
-          fetch("https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key="+key,{
+          fetch("https://somfit-ai.ibnuxamari7906.workers.dev",{
             method:"POST",
             headers:{"Content-Type":"application/json"},
             body:JSON.stringify({contents:contents,generationConfig:{maxOutputTokens:512,temperature:0.7}})
@@ -3500,28 +3494,9 @@ function MainApp({initProfile}){
                 <div style={{width:46,height:46,borderRadius:15,background:"linear-gradient(135deg,#CE93D8,#AB47BC)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:22,boxShadow:"0 4px 16px rgba(206,147,216,0.4)"}}>🤖</div>
                 <div style={{flex:1}}>
                   <div style={{fontWeight:900,fontSize:15,background:"linear-gradient(135deg,#CE93D8,#E1BEE7)",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent"}}>AI Coach</div>
-                  <div style={{fontSize:11,fontWeight:600,color:geminiKey?C.green:C.amber}}>{geminiKey?"● Connected · Gemini AI":"○ Tap 🔑 to connect Gemini"}</div>
+                  <div style={{fontSize:11,fontWeight:600,color:C.green}}>● Connected · Gemini AI</div>
                 </div>
-                <button onClick={function(){setShowKeyInput(function(v){return !v;});setKeyDraft(geminiKey);}} style={{width:36,height:36,borderRadius:11,border:"1px solid rgba(206,147,216,0.4)",background:"rgba(206,147,216,0.12)",fontSize:18,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>🔑</button>
-              </div>
-              {/* Gemini key input panel */}
-              {showKeyInput&&<div style={{marginTop:12,paddingTop:12,borderTop:"1px solid rgba(206,147,216,0.2)"}}>
-                <div style={{fontSize:11,color:C.muted,marginBottom:8}}>Paste your <strong style={{color:"#CE93D8"}}>Gemini API key</strong> from <span style={{color:C.cyan}}>aistudio.google.com/app/apikey</span></div>
-                <div style={{display:"flex",gap:8}}>
-                  <input value={keyDraft} onChange={function(e){setKeyDraft(e.target.value);}} placeholder="AQ. or AIzaSy..." type="password" style={{flex:1,padding:"9px 12px",borderRadius:11,border:"1px solid rgba(206,147,216,0.35)",background:"rgba(0,0,0,0.25)",color:C.text,fontSize:12,outline:"none",fontFamily:"monospace"}}/>
-                  <button onClick={function(){
-                    var k=keyDraft.trim();
-                    try{if(k)localStorage.setItem("sf:geminiKey",k);else localStorage.removeItem("sf:geminiKey");}catch(e){}
-                    setGeminiKey(k);
-                    setShowKeyInput(false);
-                    if(k) setCoachMsgs([{role:"ai",text:"🎉 Gemini AI connected! I'm your fitness coach now, "+(profile.name||"champ")+". Ask me anything about training, nutrition, or recovery!"}]);
-                  }} style={{padding:"9px 14px",borderRadius:11,border:"none",background:"linear-gradient(135deg,#CE93D8,#AB47BC)",color:"#fff",fontSize:12,fontWeight:800,cursor:"pointer"}}>Save</button>
-                  {geminiKey&&<button onClick={function(){
-                    try{localStorage.removeItem("sf:geminiKey");}catch(e){}
-                    setGeminiKey("");setKeyDraft("");setShowKeyInput(false);
-                  }} style={{padding:"9px 12px",borderRadius:11,border:"1px solid "+C.red+"44",background:C.red+"11",color:C.red,fontSize:12,fontWeight:700,cursor:"pointer"}}>✕</button>}
-                </div>
-              </div>}
+                <div style={{fontSize:11,fontWeight:700,color:C.green}}>● Powered by Gemini AI</div>
             </GlassCard>
           </div>
           {/* Chat messages */}
