@@ -257,7 +257,6 @@ const monthlySteps=[210000,245000,198000,267000,289000,312000];
 const hrData=[68,72,85,91,78,65,70,88,95,82,74,68];
 const days=["Mon","Tue","Wed","Thu","Fri","Sat","Sun"];
 const monthLabels=["Jan","Feb","Mar","Apr","May","Jun"];
-const aiTips=["You're 2,300 steps from your daily goal!","Your recovery is excellent today. Push hard!","Best window for cardio: 4–6 PM based on your HRV.","Hydrate! You're below your water target.","Great sleep last night. VO₂ Max improving!"];
 const heatmapData=Array.from({length:35},(_,i)=>({v:Math.random()}));
 
 const ACHIEVEMENTS=[
@@ -343,7 +342,6 @@ const TABS=[
   {id:"analytics",label:"Stats",svgPath:"M4 20h4V10H4v10zm6 0h4V4h-4v16zm6 0h4v-7h-4v7z",grad:[C.amber,C.pink]},
   {id:"social",label:"Social",svgPath:"M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z",grad:[C.pink,C.purpleLight]},
   {id:"fitness",label:"Fitness",svgPath:"M20.57 14.86L22 13.43 20.57 12 17 15.57 8.43 7 12 3.43 10.57 2 9.14 3.43 7.71 2 5.57 4.14 4.14 2.71 2.71 4.14l1.43 1.43L2 7.71l1.43 1.43L2 10.57 3.43 12 7 8.43 15.57 17 12 20.57 13.43 22l1.43-1.43L16.29 22l2.14-2.14 1.43 1.43 1.43-1.43-1.43-1.43L22 16.29z",grad:[C.red,C.amber]},
-  {id:"coach",label:"Coach",svgPath:"M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-3 12H7v-2h10v2zm0-3H7V9h10v2zm0-3H7V6h10v2z",grad:["#CE93D8","#AB47BC"]},
   {id:"more",label:"More",svgPath:"M4 8h4V4H4v4zm6 0h4V4h-4v4zm6 0h4V4h-4v4zM4 14h4v-4H4v4zm6 0h4v-4h-4v4zm6 0h4v-4h-4v4zM4 20h4v-4H4v4zm6 0h4v-4h-4v4zm6 0h4v-4h-4v4z",grad:[C.purpleLight,C.purple]},
 ];
 
@@ -765,8 +763,6 @@ function PermissionsScreen({onDone}){
 function MainApp({initProfile}){
   // ── Transient UI state (not persisted) ──
   const [tab,setTab]=useState("home");
-  const [aiMsg,setAiMsg]=useState(aiTips[0]);
-  const [aiOpen,setAiOpen]=useState(false);
   const [workout,setWorkout]=useState(null);
   const [wTime,setWTime]=useState(0);
   const workoutStepsStart=useRef(0);
@@ -901,13 +897,6 @@ function MainApp({initProfile}){
   var measureLogs=measureLogsPair[0],setMeasureLogs=measureLogsPair[1];
   var [motionGranted,setMotionGranted]=useState(false);
   var [showAddMeasure,setShowAddMeasure]=useState(false);
-  var [coachMsgs,setCoachMsgs]=useState([{role:"ai",text:"Hey! 👋 I'm your AI fitness coach powered by Gemini. I can help with workout plans, nutrition, recovery, motivation — anything fitness. What's on your mind?"}]);
-  var [coachInput,setCoachInput]=useState("");
-  var [coachTyping,setCoachTyping]=useState(false);
-  var coachEndRef=useRef(null);
-  var [geminiKey,setGeminiKey]=useState(function(){try{return localStorage.getItem("sf:geminiKey")||"";}catch(e){return "";}});
-  var [showKeyInput,setShowKeyInput]=useState(false);
-  var [keyDraft,setKeyDraft]=useState("");
   var [expandedWorkout,setExpandedWorkout]=useState(null);
   var [socialTab,setSocialTab]=useState("active");
   var [showCreateChallenge,setShowCreateChallenge]=useState(false);
@@ -1090,15 +1079,6 @@ function MainApp({initProfile}){
     };
   },[]);
 
-  // AI tips rotate
-  useEffect(function(){
-    var i=0;
-    var iv=setInterval(function(){
-      i=(i+1)%aiTips.length;
-      setAiMsg(aiTips[i]);
-    },3500);
-    return function(){clearInterval(iv);};
-  },[]);
 
   // Workout timer
   useEffect(function(){
@@ -1354,21 +1334,6 @@ function MainApp({initProfile}){
       <div style={{padding:"0 16px"}}>
         {/* HOME TAB */}
         {tab==="home"&&<div style={{display:"flex",flexDirection:"column",gap:14}}>
-          {/* AI Coach */}
-          <div onClick={function(){setAiOpen(function(o){return !o;});}} style={{borderRadius:20,padding:16,background:"linear-gradient(135deg,#0A1428,#121E3A)",border:"1px solid "+C.cyan+"44",cursor:"pointer"}}>
-            <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:aiOpen?12:0}}>
-              <div style={{width:36,height:36,borderRadius:12,background:G.cyan,display:"flex",alignItems:"center",justifyContent:"center",fontSize:18,flexShrink:0}}>🤖</div>
-              <div style={{flex:1}}>
-                <div style={{fontSize:11,color:C.cyan,fontWeight:700,letterSpacing:1}}>AI COACH</div>
-                <div style={{fontSize:13,fontWeight:600,color:C.text}}>{aiMsg}</div>
-              </div>
-              <span style={{color:C.muted,fontSize:16}}>{aiOpen?"▲":"▼"}</span>
-            </div>
-            {aiOpen&&<div style={{display:"flex",flexDirection:"column",gap:8}}>
-              {aiTips.map(function(tip,i){return <div key={i} style={{fontSize:12,color:C.muted,padding:"8px 12px",borderRadius:10,background:"#1565C0",border:"1px solid "+C.border}}>• {tip}</div>;})}
-            </div>}
-          </div>
-
           {/* Pedometer permission banner — shown until granted */}
           {!motionGranted&&(function(){
             var hasPermAPI=typeof DeviceMotionEvent!=="undefined"&&typeof DeviceMotionEvent.requestPermission==="function";
@@ -3449,103 +3414,6 @@ function MainApp({initProfile}){
         </div>}
       </div>
 
-      {/* ── AI Coach Tab ── */}
-      {tab==="coach"&&(function(){
-        var QUICK=["💪 Build me a workout plan","🍎 What should I eat today?","😴 How do I recover faster?","🏃 How to improve my running pace?","🔥 How to burn more fat?","📈 How do I track my progress?"];
-        function sendCoachMsg(text){
-          if(!text.trim()||coachTyping) return;
-          var userMsg={role:"user",text:text};
-          var updatedMsgs=coachMsgs.concat([userMsg]);
-          setCoachMsgs(updatedMsgs);
-          setCoachInput("");
-          setCoachTyping(true);
-          setTimeout(function(){if(coachEndRef.current)coachEndRef.current.scrollIntoView({behavior:"smooth"});},60);
-          // Build Gemini conversation history
-          var systemPrompt="You are an expert personal fitness coach inside the Som Fit app. The user's name is "+(profile.name||"there")+". Their stats: weight "+(profile.weight||"?")+"kg, height "+(profile.height||"?")+"cm, age "+(profile.age||"?")+" years, goal: "+(profile.goal||"general fitness")+". Be concise, practical and motivating. Use emojis sparingly. Format key points clearly. Keep replies under 200 words unless a detailed plan is requested.";
-          var geminiContents=updatedMsgs.map(function(m){
-            return {role:m.role==="ai"?"model":"user",parts:[{text:m.text}]};
-          });
-          // Prepend system context as first user turn if not already
-          var contents=[{role:"user",parts:[{text:systemPrompt}]},{role:"model",parts:[{text:"Understood! I'm ready to help as your personal fitness coach."}]}].concat(geminiContents);
-          fetch("https://somfit-ai.ibnuxamari7906.workers.dev",{
-            method:"POST",
-            headers:{"Content-Type":"application/json"},
-            body:JSON.stringify({contents:contents,generationConfig:{maxOutputTokens:512,temperature:0.7}})
-          }).then(function(r){return r.json();}).then(function(data){
-            setCoachTyping(false);
-            var reply="Sorry, I couldn't get a response. Please try again.";
-            if(data.candidates&&data.candidates[0]&&data.candidates[0].content&&data.candidates[0].content.parts&&data.candidates[0].content.parts[0]){
-              reply=data.candidates[0].content.parts[0].text;
-            } else if(data.error){
-              reply="❌ Error: "+data.error.message;
-            }
-            setCoachMsgs(function(prev){return prev.concat([{role:"ai",text:reply}]);});
-            setTimeout(function(){if(coachEndRef.current)coachEndRef.current.scrollIntoView({behavior:"smooth"});},80);
-          }).catch(function(err){
-            setCoachTyping(false);
-            setCoachMsgs(function(prev){return prev.concat([{role:"ai",text:"❌ Network error. Check your connection and try again."}]);});
-          });
-        }
-        return <div style={{display:"flex",flexDirection:"column",height:"calc(100vh - 130px)",gap:0}}>
-          {/* Header */}
-          <div style={{padding:"0 0 10px"}}>
-            <GlassCard style={{padding:"14px 16px",background:"linear-gradient(135deg,rgba(206,147,216,0.15),rgba(171,71,188,0.1))"}}>
-              <div style={{display:"flex",alignItems:"center",gap:12}}>
-                <div style={{width:46,height:46,borderRadius:15,background:"linear-gradient(135deg,#CE93D8,#AB47BC)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:22,boxShadow:"0 4px 16px rgba(206,147,216,0.4)"}}>🤖</div>
-                <div style={{flex:1}}>
-                  <div style={{fontWeight:900,fontSize:15,background:"linear-gradient(135deg,#CE93D8,#E1BEE7)",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent"}}>AI Coach</div>
-                  <div style={{fontSize:11,fontWeight:600,color:C.green}}>● Connected · Gemini AI</div>
-                </div>
-              </div>
-            </GlassCard>
-          </div>
-          {/* Chat messages */}
-          <div style={{flex:1,overflowY:"auto",display:"flex",flexDirection:"column",gap:10,paddingBottom:8}}>
-            {coachMsgs.length===1&&<div style={{display:"flex",flexWrap:"wrap",gap:8,marginBottom:4}}>
-              {QUICK.map(function(q,i){
-                return <button key={i} onClick={function(){sendCoachMsg(q.replace(/^[^ ]+ /,""));}} style={{padding:"8px 12px",borderRadius:20,border:"1px solid rgba(206,147,216,0.35)",background:"rgba(206,147,216,0.08)",color:C.purpleLight,fontSize:11,fontWeight:600,cursor:"pointer"}}>{q}</button>;
-              })}
-            </div>}
-            {coachMsgs.map(function(m,i){
-              var isAI=m.role==="ai";
-              return <div key={i} style={{display:"flex",flexDirection:isAI?"row":"row-reverse",gap:8,alignItems:"flex-end"}}>
-                {isAI&&<div style={{width:30,height:30,borderRadius:10,background:"linear-gradient(135deg,#CE93D8,#AB47BC)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:14,flexShrink:0,boxShadow:"0 2px 8px rgba(206,147,216,0.35)"}}>🤖</div>}
-                <div style={{maxWidth:"78%",padding:"10px 14px",borderRadius:isAI?"4px 16px 16px 16px":"16px 4px 16px 16px",background:isAI?"linear-gradient(135deg,rgba(206,147,216,0.18),rgba(171,71,188,0.12))":"linear-gradient(135deg,rgba(0,245,160,0.18),rgba(0,200,128,0.12))",border:"1px solid "+(isAI?"rgba(206,147,216,0.3)":"rgba(0,245,160,0.3)"),fontSize:13,lineHeight:1.55,color:C.text,whiteSpace:"pre-line"}}>
-                  {m.text.split(/\*\*(.*?)\*\*/).map(function(part,j){
-                    return j%2===1?<strong key={j} style={{color:isAI?C.purpleLight:C.green}}>{part}</strong>:<span key={j}>{part}</span>;
-                  })}
-                </div>
-              </div>;
-            })}
-            {coachTyping&&<div style={{display:"flex",gap:8,alignItems:"flex-end"}}>
-              <div style={{width:30,height:30,borderRadius:10,background:"linear-gradient(135deg,#CE93D8,#AB47BC)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:14,flexShrink:0}}>🤖</div>
-              <div style={{padding:"10px 16px",borderRadius:"4px 16px 16px 16px",background:"rgba(206,147,216,0.15)",border:"1px solid rgba(206,147,216,0.25)"}}>
-                <style>{`@keyframes coachDot{0%,80%,100%{opacity:0.3;transform:translateY(0)}40%{opacity:1;transform:translateY(-4px)}}.cd1{animation:coachDot 1.2s ease-in-out infinite}.cd2{animation:coachDot 1.2s ease-in-out 0.2s infinite}.cd3{animation:coachDot 1.2s ease-in-out 0.4s infinite}`}</style>
-                <span style={{display:"inline-flex",gap:4}}>
-                  <span className="cd1" style={{display:"inline-block",width:6,height:6,borderRadius:"50%",background:C.purpleLight}}/>
-                  <span className="cd2" style={{display:"inline-block",width:6,height:6,borderRadius:"50%",background:C.purpleLight}}/>
-                  <span className="cd3" style={{display:"inline-block",width:6,height:6,borderRadius:"50%",background:C.purpleLight}}/>
-                </span>
-              </div>
-            </div>}
-            <div ref={coachEndRef}/>
-          </div>
-          {/* Input bar */}
-          <div style={{paddingTop:8}}>
-            <div style={{display:"flex",gap:8,alignItems:"flex-end",background:"rgba(255,255,255,0.05)",border:"1px solid rgba(206,147,216,0.3)",borderRadius:20,padding:"8px 8px 8px 14px"}}>
-              <textarea
-                value={coachInput}
-                onChange={function(e){setCoachInput(e.target.value);}}
-                onKeyDown={function(e){if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();sendCoachMsg(coachInput);}}}
-                placeholder="Ask your coach anything..."
-                rows={1}
-                style={{flex:1,background:"transparent",border:"none",outline:"none",color:C.text,fontSize:14,resize:"none",lineHeight:1.4,maxHeight:96,fontFamily:"inherit",paddingTop:4}}
-              />
-              <button onClick={function(){sendCoachMsg(coachInput);}} disabled={!coachInput.trim()||coachTyping} style={{width:38,height:38,borderRadius:13,border:"none",cursor:coachInput.trim()&&!coachTyping?"pointer":"not-allowed",background:coachInput.trim()&&!coachTyping?"linear-gradient(135deg,#CE93D8,#AB47BC)":"rgba(255,255,255,0.1)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:16,flexShrink:0,opacity:coachInput.trim()&&!coachTyping?1:0.4,transition:"all 0.2s"}}>➤</button>
-            </div>
-          </div>
-        </div>;
-      })()}
 
       {/* Bottom Nav */}
       <style>{`
