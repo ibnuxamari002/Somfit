@@ -791,18 +791,20 @@ function MainApp({initProfile}){
   const [gpsPaused,setGpsPaused]=useState(false);
 
   // ── Weather state ──
-  const [weather,setWeather]=useState(null); // {temp,desc,wind,icon,good}
+  const [weather,setWeather]=useState(null); // {tempC,tempF,desc,wind,icon,good}
+  const [weatherUnit,setWeatherUnit]=useState("C");
   useEffect(function(){
     if(!navigator.geolocation){setWeather({temp:"--",desc:"Location unavailable",wind:"--",icon:"🌡️",good:null});return;}
     navigator.geolocation.getCurrentPosition(function(pos){
       var lat=pos.coords.latitude.toFixed(4);
       var lon=pos.coords.longitude.toFixed(4);
-      fetch("https://api.open-meteo.com/v1/forecast?latitude="+lat+"&longitude="+lon+"&current=temperature_2m,weathercode,windspeed_10m&temperature_unit=fahrenheit&windspeed_unit=mph&timezone=auto")
+      fetch("https://api.open-meteo.com/v1/forecast?latitude="+lat+"&longitude="+lon+"&current=temperature_2m,weathercode,windspeed_10m&temperature_unit=celsius&windspeed_unit=kmh&timezone=auto")
         .then(function(r){return r.json();})
         .then(function(d){
           var cur=d.current;
           var code=cur.weathercode;
-          var temp=Math.round(cur.temperature_2m);
+          var tempC=Math.round(cur.temperature_2m);
+          var tempF=Math.round(tempC*9/5+32);
           var wind=Math.round(cur.windspeed_10m);
           // WMO weather code → icon + description
           var icon="🌡️",desc="Clear";
@@ -817,8 +819,8 @@ function MainApp({initProfile}){
           else if(code<=84){icon="🌨️";desc="Snow showers";}
           else if(code<=99){icon="⛈️";desc="Thunderstorm";}
           // Good for run: clear/partly cloudy, temp 45-85°F, wind <20mph
-          var good=(code<=2)&&(temp>=45&&temp<=85)&&(wind<20);
-          setWeather({temp:temp,desc:desc+" · "+wind+"mph wind",wind:wind,icon:icon,good:good});
+          var good=(code<=2)&&(tempC>=10&&tempC<=35)&&(wind<30);
+          setWeather({tempC:tempC,tempF:tempF,desc:desc+" · "+wind+" km/h",wind:wind,icon:icon,good:good});
         })
         .catch(function(){setWeather({temp:"--",desc:"Weather unavailable",wind:"--",icon:"🌡️",good:null});});
     },function(){
@@ -1635,7 +1637,14 @@ function MainApp({initProfile}){
                   <div style={{display:"flex",alignItems:"center",gap:12}}>
                     <span style={{fontSize:32}}>{weather.icon}</span>
                     <div>
-                      <div style={{fontSize:22,fontWeight:900,color:C.text}}>{weather.temp!=="--"?weather.temp+"°F":weather.temp}</div>
+                      <div style={{display:"flex",alignItems:"baseline",gap:6}}>
+                        <div style={{fontSize:22,fontWeight:900,color:C.text}}>{weatherUnit==="C"?weather.tempC+"°C":weather.tempF+"°F"}</div>
+                        <div style={{display:"flex",gap:2,alignItems:"center"}}>
+                          <span onClick={function(e){e.stopPropagation();setWeatherUnit("C");}} style={{fontSize:11,fontWeight:700,cursor:"pointer",color:weatherUnit==="C"?C.cyan:C.muted,borderBottom:weatherUnit==="C"?"1px solid "+C.cyan:"none",paddingBottom:1}}>°C</span>
+                          <span style={{fontSize:10,color:C.muted}}>|</span>
+                          <span onClick={function(e){e.stopPropagation();setWeatherUnit("F");}} style={{fontSize:11,fontWeight:700,cursor:"pointer",color:weatherUnit==="F"?C.cyan:C.muted,borderBottom:weatherUnit==="F"?"1px solid "+C.cyan:"none",paddingBottom:1}}>°F</span>
+                        </div>
+                      </div>
                       <div style={{fontSize:11,color:C.muted}}>{weather.desc}</div>
                     </div>
                   </div>
