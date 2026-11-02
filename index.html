@@ -790,6 +790,42 @@ function MainApp({initProfile}){
   const [gpsStatus,setGpsStatus]=useState("idle"); // idle|acquiring|tracking|denied
   const [gpsPaused,setGpsPaused]=useState(false);
 
+  // ── Weather state ──
+  const [weather,setWeather]=useState(null); // {temp,desc,wind,icon,good}
+  useEffect(function(){
+    if(!navigator.geolocation){setWeather({temp:"--",desc:"Location unavailable",wind:"--",icon:"🌡️",good:null});return;}
+    navigator.geolocation.getCurrentPosition(function(pos){
+      var lat=pos.coords.latitude.toFixed(4);
+      var lon=pos.coords.longitude.toFixed(4);
+      fetch("https://api.open-meteo.com/v1/forecast?latitude="+lat+"&longitude="+lon+"&current=temperature_2m,weathercode,windspeed_10m&temperature_unit=fahrenheit&windspeed_unit=mph&timezone=auto")
+        .then(function(r){return r.json();})
+        .then(function(d){
+          var cur=d.current;
+          var code=cur.weathercode;
+          var temp=Math.round(cur.temperature_2m);
+          var wind=Math.round(cur.windspeed_10m);
+          // WMO weather code → icon + description
+          var icon="🌡️",desc="Clear";
+          if(code===0){icon="☀️";desc="Clear sky";}
+          else if(code<=2){icon="⛅";desc="Partly cloudy";}
+          else if(code===3){icon="☁️";desc="Overcast";}
+          else if(code<=49){icon="🌫️";desc="Foggy";}
+          else if(code<=59){icon="🌦️";desc="Drizzle";}
+          else if(code<=69){icon="🌧️";desc="Rain";}
+          else if(code<=79){icon="❄️";desc="Snow";}
+          else if(code<=82){icon="🌧️";desc="Showers";}
+          else if(code<=84){icon="🌨️";desc="Snow showers";}
+          else if(code<=99){icon="⛈️";desc="Thunderstorm";}
+          // Good for run: clear/partly cloudy, temp 45-85°F, wind <20mph
+          var good=(code<=2)&&(temp>=45&&temp<=85)&&(wind<20);
+          setWeather({temp:temp,desc:desc+" · "+wind+"mph wind",wind:wind,icon:icon,good:good});
+        })
+        .catch(function(){setWeather({temp:"--",desc:"Weather unavailable",wind:"--",icon:"🌡️",good:null});});
+    },function(){
+      setWeather({temp:"--",desc:"Allow location for weather",wind:"--",icon:"📍",good:null});
+    },{timeout:8000});
+  },[]);
+
   // ── Interval Timer state ──
   const [itCfg,setItCfg]=useState({work:40,rest:20,rounds:8});
   const [itMode,setItMode]=useState("idle"); // idle | work | rest | done
@@ -1585,16 +1621,28 @@ function MainApp({initProfile}){
             </div>
           </div>
 
-          {/* Weather */}
+          {/* Weather — live via Open-Meteo */}
           <div style={{borderRadius:20,padding:16,background:"linear-gradient(135deg,#1565C0,#101828)",border:"1px solid "+C.blue+"33",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-            <div style={{display:"flex",alignItems:"center",gap:12}}>
-              <span style={{fontSize:32}}>⛅</span>
-              <div>
-                <div style={{fontSize:22,fontWeight:900,color:C.text}}>72°F</div>
-                <div style={{fontSize:11,color:C.muted}}>Partly Cloudy · 5mph wind</div>
-              </div>
-            </div>
-            <Pill color={C.green} bg={C.green+"18"}>Good for run</Pill>
+            {!weather
+              ? <div style={{display:"flex",alignItems:"center",gap:12}}>
+                  <span style={{fontSize:32}}>🌐</span>
+                  <div>
+                    <div style={{fontSize:14,fontWeight:700,color:C.text}}>Loading weather…</div>
+                    <div style={{fontSize:11,color:C.muted}}>Getting your location</div>
+                  </div>
+                </div>
+              : <div style={{display:"flex",alignItems:"center",gap:12,flex:1,justifyContent:"space-between"}}>
+                  <div style={{display:"flex",alignItems:"center",gap:12}}>
+                    <span style={{fontSize:32}}>{weather.icon}</span>
+                    <div>
+                      <div style={{fontSize:22,fontWeight:900,color:C.text}}>{weather.temp!=="--"?weather.temp+"°F":weather.temp}</div>
+                      <div style={{fontSize:11,color:C.muted}}>{weather.desc}</div>
+                    </div>
+                  </div>
+                  {weather.good===true&&<Pill color={C.green} bg={C.green+"18"}>Good for run</Pill>}
+                  {weather.good===false&&<Pill color={C.amber} bg={C.amber+"18"}>Stay hydrated</Pill>}
+                </div>
+            }
           </div>
 
           {/* Weekly Steps Bar — live from dailyLogs */}
