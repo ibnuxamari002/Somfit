@@ -499,7 +499,12 @@ var GOOGLE_CLIENT_ID="824322486194-mhm0bphtf267bdf3tj22ehqck9lj9p3v.apps.googleu
 function LoginScreen({onDone}){
   const [error,setError]=useState("");
   const [loading,setLoading]=useState(false);
+  const [mode,setMode]=useState("main"); // main | phone | otp
+  const [phone,setPhone]=useState("");
+  const [otp,setOtp]=useState("");
+  const [confirmResult,setConfirmResult]=useState(null);
   const googleBtnRef=useRef(null);
+  const recaptchaRef=useRef(null);
 
   useEffect(function(){
     function tryInit(){
@@ -529,22 +534,114 @@ function LoginScreen({onDone}){
     tryInit();
   },[]);
 
+  function sendOTP(){
+    if(!phone.trim()){setError("Enter your phone number");return;}
+    setError("");setLoading(true);
+    var fb=window.__FB;
+    try{
+      if(!window._recaptchaVerifier){
+        window._recaptchaVerifier=new fb.RecaptchaVerifier(fb.auth,"recaptcha-container",{size:"invisible"});
+      }
+      fb.signInWithPhoneNumber(fb.auth,phone,window._recaptchaVerifier).then(function(result){
+        setConfirmResult(result);
+        setMode("otp");
+        setLoading(false);
+      }).catch(function(e){
+        setError("Failed to send SMS: "+e.message);
+        setLoading(false);
+        window._recaptchaVerifier=null;
+      });
+    }catch(e){setError(e.message);setLoading(false);}
+  }
+
+  function verifyOTP(){
+    if(!otp.trim()){setError("Enter the 6-digit code");return;}
+    setError("");setLoading(true);
+    confirmResult.confirm(otp).then(function(r){
+      var user=r.user;
+      var fb=window.__FB;
+      fb.setDoc(fb.doc(fb.db,"users",user.uid),{
+        uid:user.uid,phone:user.phoneNumber||"",
+        lastLogin:fb.serverTimestamp(),platform:"web"
+      },{merge:true}).catch(function(){});
+      try{localStorage.setItem("sf:googleUser",JSON.stringify({name:user.phoneNumber||"User",email:"",avatar:"🏃",uid:user.uid}));}catch(e){}
+      setLoading(false);
+      onDone();
+    }).catch(function(e){setError("Wrong code. Try again.");setLoading(false);});
+  }
+
   return(
     <div style={{minHeight:"100vh",background:C.bg,padding:"48px 24px 40px",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center"}}>
-      <div style={{textAlign:"center",marginBottom:48}}>
+      <div style={{textAlign:"center",marginBottom:40}}>
         <div style={{fontSize:56,marginBottom:16}}>🏃</div>
         <div style={{fontSize:30,fontWeight:900,background:G.hero,WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent",marginBottom:8}}>Welcome to Som Fit</div>
         <div style={{color:C.muted,fontSize:14}}>Sign in to sync your fitness data</div>
       </div>
-      <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:16,width:"100%",maxWidth:320}}>
-        {loading
-          ?<div style={{color:C.green,fontSize:15,fontWeight:700}}>✅ Signing you in…</div>
-          :<div ref={googleBtnRef} style={{minHeight:48,display:"flex",justifyContent:"center",width:"100%"}}></div>
-        }
-        {error&&<div style={{color:C.red,fontSize:13,textAlign:"center",padding:"10px 16px",borderRadius:12,background:C.red+"15",border:"1px solid "+C.red+"44"}}>{error}</div>}
-        <button onClick={function(){onDone();}} style={{width:"100%",padding:"12px 24px",borderRadius:14,border:"1px solid "+C.border+"66",background:"transparent",color:C.muted,fontSize:13,fontWeight:600,cursor:"pointer",textAlign:"center"}}>
-          Continue without account
-        </button>
+
+      <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:14,width:"100%",maxWidth:320}}>
+
+        {/* ── MAIN: Google + Phone buttons ── */}
+        {mode==="main"&&<>
+          {loading
+            ?<div style={{color:C.green,fontSize:15,fontWeight:700}}>✅ Signing you in…</div>
+            :<div ref={googleBtnRef} style={{minHeight:48,display:"flex",justifyContent:"center",width:"100%"}}></div>
+          }
+          <div style={{display:"flex",alignItems:"center",gap:10,width:"100%"}}>
+            <div style={{flex:1,height:1,background:C.border+"55"}}/>
+            <div style={{fontSize:12,color:C.muted}}>or</div>
+            <div style={{flex:1,height:1,background:C.border+"55"}}/>
+          </div>
+          <button onClick={function(){setMode("phone");setError("");}} style={{width:"100%",padding:"13px 24px",borderRadius:14,border:"1px solid "+C.border+"88",background:"rgba(255,255,255,0.05)",color:C.text,fontSize:14,fontWeight:700,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:10}}>
+            <span style={{fontSize:18}}>📱</span> Continue with Phone
+          </button>
+          <button onClick={function(){onDone();}} style={{width:"100%",padding:"12px 24px",borderRadius:14,border:"1px solid "+C.border+"44",background:"transparent",color:C.muted,fontSize:13,fontWeight:600,cursor:"pointer",textAlign:"center"}}>
+            Continue without account
+          </button>
+        </>}
+
+        {/* ── PHONE: enter number ── */}
+        {mode==="phone"&&<>
+          <div style={{width:"100%",textAlign:"center",marginBottom:4}}>
+            <div style={{fontSize:16,fontWeight:800,color:C.text}}>Enter your phone number</div>
+            <div style={{fontSize:12,color:C.muted,marginTop:4}}>We'll send you a 6-digit verification code</div>
+          </div>
+          <input
+            value={phone}
+            onChange={function(e){setPhone(e.target.value);}}
+            onKeyDown={function(e){if(e.key==="Enter")sendOTP();}}
+            placeholder="+252 6X XXX XXXX"
+            type="tel"
+            style={{width:"100%",padding:"14px 16px",borderRadius:14,border:"1px solid "+C.border+"88",background:"rgba(255,255,255,0.06)",color:C.text,fontSize:16,outline:"none",boxSizing:"border-box",letterSpacing:1}}
+          />
+          <div id="recaptcha-container"/>
+          <button onClick={sendOTP} disabled={loading} style={{width:"100%",padding:"14px",borderRadius:14,border:"none",background:loading?"rgba(0,245,160,0.3)":"linear-gradient(135deg,"+C.green+",#00c853)",color:"#000",fontSize:15,fontWeight:800,cursor:loading?"not-allowed":"pointer"}}>
+            {loading?"Sending…":"Send Code →"}
+          </button>
+          <button onClick={function(){setMode("main");setError("");}} style={{background:"transparent",border:"none",color:C.muted,fontSize:13,cursor:"pointer"}}>← Back</button>
+        </>}
+
+        {/* ── OTP: enter code ── */}
+        {mode==="otp"&&<>
+          <div style={{width:"100%",textAlign:"center",marginBottom:4}}>
+            <div style={{fontSize:16,fontWeight:800,color:C.text}}>Enter verification code</div>
+            <div style={{fontSize:12,color:C.muted,marginTop:4}}>Sent to {phone}</div>
+          </div>
+          <input
+            value={otp}
+            onChange={function(e){setOtp(e.target.value.replace(/\D/g,"").slice(0,6));}}
+            onKeyDown={function(e){if(e.key==="Enter")verifyOTP();}}
+            placeholder="000000"
+            type="number"
+            maxLength={6}
+            style={{width:"100%",padding:"14px 16px",borderRadius:14,border:"1px solid "+C.border+"88",background:"rgba(255,255,255,0.06)",color:C.text,fontSize:24,outline:"none",boxSizing:"border-box",textAlign:"center",letterSpacing:8,fontWeight:900}}
+          />
+          <button onClick={verifyOTP} disabled={loading||otp.length<6} style={{width:"100%",padding:"14px",borderRadius:14,border:"none",background:loading||otp.length<6?"rgba(0,245,160,0.3)":"linear-gradient(135deg,"+C.green+",#00c853)",color:"#000",fontSize:15,fontWeight:800,cursor:loading||otp.length<6?"not-allowed":"pointer"}}>
+            {loading?"Verifying…":"Verify & Sign In ✓"}
+          </button>
+          <button onClick={function(){setMode("phone");setOtp("");setError("");}} style={{background:"transparent",border:"none",color:C.muted,fontSize:13,cursor:"pointer"}}>← Resend code</button>
+        </>}
+
+        {error&&<div style={{color:C.red,fontSize:13,textAlign:"center",padding:"10px 16px",borderRadius:12,background:C.red+"15",border:"1px solid "+C.red+"44",width:"100%",boxSizing:"border-box"}}>{error}</div>}
       </div>
       <div style={{textAlign:"center",color:C.muted,fontSize:11,marginTop:32,lineHeight:1.7}}>By continuing you agree to our<br/>Terms of Service & Privacy Policy</div>
     </div>
