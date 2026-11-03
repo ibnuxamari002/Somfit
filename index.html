@@ -3274,8 +3274,8 @@ function MainApp({initProfile}){
         {/* MORE TAB */}
         {tab==="more"&&<div style={{display:"flex",flexDirection:"column",gap:14}}>
 
-          {/* ── Subscription Plans ── */}
-          {(function(){
+          {/* ── Subscription Plans — hidden ── */}
+          {false&&(function(){
             var subKey="sf:subscription";
             var trialKey="sf:trialStart";
             var sub=null;
