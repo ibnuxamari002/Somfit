@@ -779,6 +779,7 @@ function MainApp({initProfile}){
   const [connectingDevice,setConnectingDevice]=useState(null);
   const [deviceMsg,setDeviceMsg]=useState("");
   const [sosActive,setSosActive]=useState(false);
+  const [showPlans,setShowPlans]=useState(false);
   const [friendSearch,setFriendSearch]=useState("");
   // ── Real GPS state ──
   const [gpsCoords,setGpsCoords]=useState([]); // [{lat,lng,ts}]
@@ -3276,7 +3277,6 @@ function MainApp({initProfile}){
 
           {/* ── Upgrade Card + Plans Modal ── */}
           {(function(){
-            var [showPlans,setShowPlans]=useState(false);
             var subKey="sf:subscription";
             var trialKey="sf:trialStart";
             var sub=null;
