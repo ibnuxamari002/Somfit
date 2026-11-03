@@ -3274,102 +3274,101 @@ function MainApp({initProfile}){
         {/* MORE TAB */}
         {tab==="more"&&<div style={{display:"flex",flexDirection:"column",gap:14}}>
 
-          {/* ── Subscription Plans — hidden ── */}
-          {false&&(function(){
+          {/* ── Upgrade Card + Plans Modal ── */}
+          {(function(){
+            var [showPlans,setShowPlans]=useState(false);
             var subKey="sf:subscription";
             var trialKey="sf:trialStart";
             var sub=null;
             var trialStart=null;
             try{var s=localStorage.getItem(subKey);if(s)sub=JSON.parse(s);}catch(e){}
             try{var t=localStorage.getItem(trialKey);if(t)trialStart=parseInt(t,10);}catch(e){}
-
-            // Start trial on first visit to this section
-            if(!trialStart){
-              trialStart=Date.now();
-              try{localStorage.setItem(trialKey,String(trialStart));}catch(e){}
-            }
+            if(!trialStart){trialStart=Date.now();try{localStorage.setItem(trialKey,String(trialStart));}catch(e){}}
             var trialDaysLeft=Math.max(0,7-Math.floor((Date.now()-trialStart)/(1000*60*60*24)));
             var trialActive=trialDaysLeft>0;
-
             var PLANS=[
               {id:"monthly",label:"1 Month",price:"$4.99",per:"/mo",color:C.cyan,icon:"⚡",desc:"Billed monthly · Cancel anytime",savings:""},
               {id:"biannual",label:"6 Months",price:"$19.99",per:"/6mo",color:C.green,icon:"🔥",desc:"Only $3.33/mo · Save 33%",savings:"POPULAR",badge:true},
               {id:"annual",label:"12 Months",price:"$34.99",per:"/yr",color:C.purple,icon:"👑",desc:"Only $2.92/mo · Save 42%",savings:"BEST VALUE"},
             ];
-
             var isSubbed=sub&&sub.id;
             var activePlan=isSubbed?PLANS.find(function(p){return p.id===sub.id;}):null;
-
-            return <GlassCard style={{padding:18}}>
-              {/* Header */}
-              <div style={{textAlign:"center",marginBottom:16}}>
-                <div style={{fontSize:28,marginBottom:4}}>👑</div>
-                <div style={{fontSize:18,fontWeight:900,background:G.purple,WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent"}}>Som Fit PRO</div>
-                <div style={{fontSize:12,color:C.muted,marginTop:4}}>Unlock all features · AI Coach · Advanced stats</div>
-              </div>
-
-              {/* Trial banner */}
-              {!isSubbed&&(
-                <div style={{padding:"10px 14px",borderRadius:14,background:trialActive?C.green+"15":C.amber+"15",border:"1px solid "+(trialActive?C.green+"44":C.amber+"44"),marginBottom:14,textAlign:"center"}}>
-                  {trialActive
-                    ?<div><span style={{fontSize:14,fontWeight:800,color:C.green}}>🎁 Free Trial Active</span><div style={{fontSize:11,color:C.muted,marginTop:2}}>{trialDaysLeft} day{trialDaysLeft!==1?"s":""} remaining — subscribe before it ends</div></div>
-                    :<div><span style={{fontSize:13,fontWeight:700,color:C.amber}}>⏰ Trial Ended</span><div style={{fontSize:11,color:C.muted,marginTop:2}}>Subscribe to keep all PRO features</div></div>
-                  }
-                </div>
-              )}
-
-              {/* Active subscription */}
-              {isSubbed&&activePlan&&(
-                <div style={{padding:"12px 14px",borderRadius:14,background:activePlan.color+"15",border:"1px solid "+activePlan.color+"44",marginBottom:14,display:"flex",alignItems:"center",gap:10}}>
-                  <div style={{fontSize:22}}>{activePlan.icon}</div>
-                  <div style={{flex:1}}>
-                    <div style={{fontSize:13,fontWeight:800,color:activePlan.color}}>✅ {activePlan.label} Plan Active</div>
-                    <div style={{fontSize:11,color:C.muted}}>Subscribed on {new Date(sub.date).toLocaleDateString()}</div>
+            return <div>
+              {/* Upgrade button card */}
+              <div onClick={function(){setShowPlans(true);}} style={{borderRadius:20,padding:"16px 18px",background:"linear-gradient(135deg,#1A0A3A,#2A0A5A)",border:"2px solid "+C.purple+"55",cursor:"pointer",display:"flex",alignItems:"center",gap:14,position:"relative",overflow:"hidden"}}>
+                <div style={{position:"absolute",inset:0,background:"radial-gradient(ellipse at 80% 50%,"+C.purple+"22 0%,transparent 70%)",pointerEvents:"none"}}/>
+                <div style={{width:48,height:48,borderRadius:16,background:"linear-gradient(135deg,"+C.purple+","+C.purpleLight+")",display:"flex",alignItems:"center",justifyContent:"center",fontSize:24,flexShrink:0,boxShadow:"0 4px 16px "+C.purple+"66"}}>👑</div>
+                <div style={{flex:1,position:"relative"}}>
+                  <div style={{fontSize:16,fontWeight:900,background:G.purple,WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent"}}>Som Fit PRO</div>
+                  <div style={{fontSize:11,color:C.muted,marginTop:2}}>
+                    {isSubbed?"✅ "+activePlan.label+" Plan Active":trialActive?"🎁 "+trialDaysLeft+" trial days left":"⏰ Trial ended · Upgrade now"}
                   </div>
-                  <button onClick={function(){
-                    if(!confirm("Cancel your subscription?")) return;
-                    try{localStorage.removeItem(subKey);}catch(e){}
-                    window.location.reload();
-                  }} style={{fontSize:10,padding:"4px 10px",borderRadius:8,border:"1px solid "+C.red+"44",background:C.red+"0A",color:C.red,cursor:"pointer",fontWeight:700}}>Cancel</button>
                 </div>
-              )}
+                <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:4,position:"relative"}}>
+                  <div style={{background:"linear-gradient(135deg,"+C.purple+","+C.purpleLight+")",borderRadius:10,padding:"6px 14px",fontSize:12,fontWeight:800,color:"#fff",whiteSpace:"nowrap"}}>See Plans</div>
+                  <div style={{fontSize:9,color:C.muted}}>From $4.99/mo</div>
+                </div>
+              </div>
 
-              {/* Plan cards */}
-              <div style={{display:"flex",flexDirection:"column",gap:10}}>
-                {PLANS.map(function(plan){
-                  var isActive=isSubbed&&sub.id===plan.id;
-                  return <div key={plan.id} style={{borderRadius:16,padding:"14px 16px",background:isActive?plan.color+"18":"rgba(255,255,255,0.04)",border:"2px solid "+(isActive?plan.color:plan.color+"33"),position:"relative",transition:"all 0.2s"}}>
-                    {plan.savings&&<div style={{position:"absolute",top:-10,right:14,background:plan.badge?"linear-gradient(135deg,"+C.green+","+C.greenDark+")":plan.color,color:"#000",fontSize:9,fontWeight:900,padding:"3px 10px",borderRadius:20,letterSpacing:1}}>{plan.savings}</div>}
-                    <div style={{display:"flex",alignItems:"center",gap:12}}>
-                      <div style={{fontSize:26}}>{plan.icon}</div>
-                      <div style={{flex:1}}>
-                        <div style={{fontSize:15,fontWeight:800,color:C.text}}>{plan.label}</div>
-                        <div style={{fontSize:10,color:C.muted,marginTop:2}}>{plan.desc}</div>
-                      </div>
-                      <div style={{textAlign:"right"}}>
-                        <div style={{fontSize:20,fontWeight:900,color:plan.color}}>{plan.price}</div>
-                        <div style={{fontSize:10,color:C.muted}}>{plan.per}</div>
-                      </div>
+              {/* Plans bottom-sheet modal */}
+              {showPlans&&<div onClick={function(){setShowPlans(false);}} style={{position:"fixed",inset:0,zIndex:200,background:"rgba(0,0,0,0.75)",backdropFilter:"blur(8px)",display:"flex",alignItems:"flex-end",justifyContent:"center"}}>
+                <div onClick={function(e){e.stopPropagation();}} style={{width:"100%",maxWidth:420,borderRadius:"28px 28px 0 0",background:"linear-gradient(160deg,#100820,#1A0A3A)",border:"1px solid "+C.purple+"44",padding:"24px 20px 40px",maxHeight:"88vh",overflowY:"auto"}}>
+                  {/* Handle */}
+                  <div style={{width:40,height:4,borderRadius:2,background:C.border,margin:"0 auto 20px"}}/>
+                  {/* Header */}
+                  <div style={{textAlign:"center",marginBottom:20}}>
+                    <div style={{fontSize:32,marginBottom:6}}>👑</div>
+                    <div style={{fontSize:20,fontWeight:900,background:G.purple,WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent"}}>Som Fit PRO</div>
+                    <div style={{fontSize:12,color:C.muted,marginTop:4}}>Unlock all features · AI Coach · Advanced stats</div>
+                  </div>
+                  {/* Trial / active banner */}
+                  {!isSubbed&&<div style={{padding:"10px 14px",borderRadius:14,background:trialActive?C.green+"15":C.amber+"15",border:"1px solid "+(trialActive?C.green+"44":C.amber+"44"),marginBottom:16,textAlign:"center"}}>
+                    {trialActive
+                      ?<div><span style={{fontSize:13,fontWeight:800,color:C.green}}>🎁 Free Trial Active — {trialDaysLeft} day{trialDaysLeft!==1?"s":""} left</span></div>
+                      :<div><span style={{fontSize:13,fontWeight:700,color:C.amber}}>⏰ Trial Ended · Subscribe to keep PRO</span></div>}
+                  </div>}
+                  {isSubbed&&activePlan&&<div style={{padding:"12px 14px",borderRadius:14,background:activePlan.color+"15",border:"1px solid "+activePlan.color+"44",marginBottom:16,display:"flex",alignItems:"center",gap:10}}>
+                    <span style={{fontSize:20}}>{activePlan.icon}</span>
+                    <div style={{flex:1}}>
+                      <div style={{fontSize:13,fontWeight:800,color:activePlan.color}}>✅ {activePlan.label} Plan Active</div>
+                      <div style={{fontSize:11,color:C.muted}}>Subscribed on {new Date(sub.date).toLocaleDateString()}</div>
                     </div>
-                    {!isActive&&<button onClick={function(){
-                      // Placeholder — payment not yet connected
-                      alert("Payment coming soon! We will notify you when online payments are ready.");
-                    }} style={{marginTop:12,width:"100%",padding:"10px",borderRadius:12,border:"none",background:"linear-gradient(135deg,"+plan.color+","+plan.color+"AA)",color:"#000",fontSize:13,fontWeight:800,cursor:"pointer"}}>
-                      {trialActive?"Start After Trial":"Subscribe Now"}
-                    </button>}
-                    {isActive&&<div style={{marginTop:10,textAlign:"center",fontSize:12,color:plan.color,fontWeight:700}}>✓ Current Plan</div>}
-                  </div>;
-                })}
-              </div>
-
-              {/* Features list */}
-              <div style={{marginTop:16,padding:"12px 14px",borderRadius:14,background:"rgba(255,255,255,0.03)",border:"1px solid "+C.border+"44"}}>
-                <div style={{fontSize:11,fontWeight:700,color:C.muted,marginBottom:8,letterSpacing:0.5}}>PRO INCLUDES</div>
-                {["🤖 AI Coach — unlimited messages","📊 Advanced health analytics","🗺️ Offline maps & GPS tracking","🏆 All challenges & leaderboards","☁️ Cloud sync across devices","📄 Doctor report export"].map(function(f,i){
-                  return <div key={i} style={{fontSize:12,color:C.text,padding:"5px 0",borderBottom:i<5?"1px solid "+C.border+"22":"none",display:"flex",alignItems:"center",gap:8}}>{f}</div>;
-                })}
-              </div>
-            </GlassCard>;
+                    <button onClick={function(){if(!confirm("Cancel your subscription?"))return;try{localStorage.removeItem(subKey);}catch(e){}window.location.reload();}} style={{fontSize:10,padding:"4px 10px",borderRadius:8,border:"1px solid "+C.red+"44",background:C.red+"0A",color:C.red,cursor:"pointer",fontWeight:700}}>Cancel</button>
+                  </div>}
+                  {/* Plan cards */}
+                  <div style={{display:"flex",flexDirection:"column",gap:12,marginBottom:16}}>
+                    {PLANS.map(function(plan){
+                      var isActive=isSubbed&&sub.id===plan.id;
+                      return <div key={plan.id} style={{borderRadius:16,padding:"14px 16px",background:isActive?plan.color+"18":"rgba(255,255,255,0.04)",border:"2px solid "+(isActive?plan.color:plan.color+"33"),position:"relative"}}>
+                        {plan.savings&&<div style={{position:"absolute",top:-10,right:14,background:plan.badge?"linear-gradient(135deg,"+C.green+","+C.greenDark+")":plan.color,color:"#000",fontSize:9,fontWeight:900,padding:"3px 10px",borderRadius:20,letterSpacing:1}}>{plan.savings}</div>}
+                        <div style={{display:"flex",alignItems:"center",gap:12}}>
+                          <div style={{fontSize:26}}>{plan.icon}</div>
+                          <div style={{flex:1}}>
+                            <div style={{fontSize:15,fontWeight:800,color:C.text}}>{plan.label}</div>
+                            <div style={{fontSize:10,color:C.muted,marginTop:2}}>{plan.desc}</div>
+                          </div>
+                          <div style={{textAlign:"right"}}>
+                            <div style={{fontSize:20,fontWeight:900,color:plan.color}}>{plan.price}</div>
+                            <div style={{fontSize:10,color:C.muted}}>{plan.per}</div>
+                          </div>
+                        </div>
+                        {!isActive&&<button onClick={function(){alert("Payment coming soon! We will notify you when online payments are ready.");}} style={{marginTop:12,width:"100%",padding:"12px",borderRadius:12,border:"none",background:"linear-gradient(135deg,"+plan.color+","+plan.color+"AA)",color:"#000",fontSize:13,fontWeight:800,cursor:"pointer"}}>
+                          {trialActive?"Start After Trial":"Subscribe Now"}
+                        </button>}
+                        {isActive&&<div style={{marginTop:10,textAlign:"center",fontSize:12,color:plan.color,fontWeight:700}}>✓ Current Plan</div>}
+                      </div>;
+                    })}
+                  </div>
+                  {/* Features */}
+                  <div style={{padding:"12px 14px",borderRadius:14,background:"rgba(255,255,255,0.03)",border:"1px solid "+C.border+"44"}}>
+                    <div style={{fontSize:11,fontWeight:700,color:C.muted,marginBottom:8,letterSpacing:0.5}}>PRO INCLUDES</div>
+                    {["🤖 AI Coach — unlimited messages","📊 Advanced health analytics","🗺️ Offline maps & GPS tracking","🏆 All challenges & leaderboards","☁️ Cloud sync across devices","📄 Doctor report export"].map(function(f,i){
+                      return <div key={i} style={{fontSize:12,color:C.text,padding:"5px 0",borderBottom:i<5?"1px solid "+C.border+"22":"none",display:"flex",alignItems:"center",gap:8}}>{f}</div>;
+                    })}
+                  </div>
+                </div>
+              </div>}
+            </div>;
           })()}
 
           <GlassCard style={{padding:18}}>
