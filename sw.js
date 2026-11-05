@@ -1,50 +1,33 @@
-// Som Fit Service Worker — always-fresh strategy
-// Bump this version string every deploy to force clients to update immediately
-const CACHE_VERSION = "somfit-v" + Date.now();
+// Som Fit Service Worker — no-cache for app files
+const TILE_CACHE = "somfit-tiles-v1";
 
-self.addEventListener("install", function(e) {
-  // Skip waiting so the new SW activates immediately (no manual refresh needed)
+self.addEventListener("install", function() {
   self.skipWaiting();
 });
 
 self.addEventListener("activate", function(e) {
-  // Take control of all open tabs immediately
-  e.waitUntil(
-    caches.keys().then(function(keys) {
-      return Promise.all(
-        keys.map(function(key) {
-          // Delete ALL old caches so stale files are gone
-          return caches.delete(key);
-        })
-      );
-    }).then(function() {
-      return self.clients.claim();
-    })
-  );
+  e.waitUntil(self.clients.claim());
 });
 
 self.addEventListener("fetch", function(e) {
   var url = e.request.url;
 
-  // For map tiles and external CDN — use network first, fall back to cache
-  if (url.includes("tile.openstreetmap") || url.includes("cdnjs.cloudflare") || url.includes("cdn.jsdelivr")) {
+  // Cache only map tiles (they rarely change)
+  if (url.includes("tile.openstreetmap.org")) {
     e.respondWith(
-      fetch(e.request).then(function(res) {
-        var clone = res.clone();
-        caches.open(CACHE_VERSION).then(function(c) { c.put(e.request, clone); });
-        return res;
-      }).catch(function() {
-        return caches.match(e.request);
+      caches.open(TILE_CACHE).then(function(cache) {
+        return cache.match(e.request).then(function(cached) {
+          return cached || fetch(e.request).then(function(res) {
+            cache.put(e.request, res.clone());
+            return res;
+          });
+        });
       })
     );
     return;
   }
 
-  // For the app itself (index.html and same-origin files) — ALWAYS network first
-  // This ensures users always get the latest version after a deploy
-  e.respondWith(
-    fetch(e.request, { cache: "no-store" }).catch(function() {
-      return caches.match(e.request);
-    })
-  );
+  // Everything else — always fetch fresh from network, no cache
+  // This means index.html always loads the latest version after a deploy
+  e.respondWith(fetch(e.request, {cache: "reload"}));
 });
