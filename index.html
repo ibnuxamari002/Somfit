@@ -1173,7 +1173,7 @@ function MainApp({initProfile}){
     if(!container) return;
     if(!window._sfMap){
       window._sfMap=window.L.map("sfLeafletMap",{zoomControl:false,attributionControl:true,dragging:false,scrollWheelZoom:false,doubleClickZoom:false,boxZoom:false,keyboard:false,tap:false});
-      window.L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",{attribution:'© <a href="https://www.openstreetmap.org/copyright">OSM</a>',maxZoom:19}).addTo(window._sfMap);
+      window.L.tileLayer("https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png",{attribution:'© <a href="https://www.openstreetmap.org/copyright">OSM</a> © <a href="https://carto.com/">CARTO</a>',maxZoom:20,subdomains:"abcd"}).addTo(window._sfMap);
       window._sfRouteLine=window.L.polyline([],{color:"#00E5FF",weight:4,opacity:0.9,lineJoin:"round"}).addTo(window._sfMap);
       var icon=window.L.divIcon({className:"",html:'<div style="width:18px;height:18px;border-radius:50%;background:#00E676;border:3px solid #fff;box-shadow:0 0 0 6px rgba(0,230,118,0.25);"></div>',iconSize:[18,18],iconAnchor:[9,9]});
       window._sfPosMarker=window.L.marker([0,0],{icon:icon});
@@ -1189,9 +1189,9 @@ function MainApp({initProfile}){
       window._sfPosMarker.setLatLng(last);
       if(!map.hasLayer(window._sfPosMarker)) window._sfPosMarker.addTo(map);
       if(gpsCoords.length===1||!map.hasLayer(window._sfStartMarker)){window._sfStartMarker.setLatLng(latLngs[0]);if(!map.hasLayer(window._sfStartMarker)) window._sfStartMarker.addTo(map);}
-      map.setView(last,17);
+      map.setView(last,18);
     } else {
-      if(navigator.geolocation){navigator.geolocation.getCurrentPosition(function(pos){map.setView([pos.coords.latitude,pos.coords.longitude],15);},function(){map.setView([2.046,45.341],13);},{timeout:4000});}
+      if(navigator.geolocation){navigator.geolocation.getCurrentPosition(function(pos){map.setView([pos.coords.latitude,pos.coords.longitude],17);},function(){map.setView([2.046,45.341],15);},{timeout:4000});}
     }
   },[workout,gpsCoords,gpsStatus]);
 
