@@ -1173,6 +1173,8 @@ function MainApp({initProfile}){
     if(!container) return;
     if(!window._sfMap){
       window._sfMap=window.L.map("sfLeafletMap",{zoomControl:false,attributionControl:true,dragging:false,scrollWheelZoom:false,doubleClickZoom:false,boxZoom:false,keyboard:false,tap:false});
+      window._sfMap.attributionControl.setPrefix('');
+      window._sfMap.getContainer().querySelector&&setTimeout(function(){var a=window._sfMap.getContainer().parentElement&&window._sfMap.getContainer().getElementsByClassName("leaflet-control-attribution")[0];if(a){a.style.fontSize="8px";a.style.opacity="0.4";a.style.background="transparent";a.style.color="#999";}},300);
       window.L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png",{attribution:'© <a href="https://www.openstreetmap.org/copyright">OSM</a>',maxZoom:19}).addTo(window._sfMap);
       window._sfRouteLine=window.L.polyline([],{color:"#00E5FF",weight:4,opacity:0.9,lineJoin:"round"}).addTo(window._sfMap);
       var icon=window.L.divIcon({className:"",html:'<div style="width:20px;height:20px;border-radius:50%;background:#1565C0;border:3px solid #fff;box-shadow:0 0 0 8px rgba(21,101,192,0.3),0 0 0 16px rgba(21,101,192,0.1);animation:sfPulse 1.5s ease-out infinite;"></div>',iconSize:[20,20],iconAnchor:[10,10]});
@@ -3602,6 +3604,8 @@ function MainApp({initProfile}){
 
       {/* Bottom Nav */}
       <style>{`
+        .leaflet-control-attribution{font-size:8px!important;opacity:0.35!important;background:transparent!important;color:#aaa!important;box-shadow:none!important;}
+        .leaflet-control-attribution a{color:#aaa!important;}
         @keyframes sfPulse{0%{box-shadow:0 0 0 0 rgba(21,101,192,0.6),0 0 0 0 rgba(21,101,192,0.3);}70%{box-shadow:0 0 0 10px rgba(21,101,192,0),0 0 0 20px rgba(21,101,192,0);}100%{box-shadow:0 0 0 0 rgba(21,101,192,0),0 0 0 0 rgba(21,101,192,0);}}
         @keyframes navPop{0%{transform:scale(0.75);}55%{transform:scale(1.18);}100%{transform:scale(1);}}
         @keyframes navGlow{0%,100%{opacity:0.5;transform:translateX(-50%) scaleX(0.6);}50%{opacity:1;transform:translateX(-50%) scaleX(1);}}
