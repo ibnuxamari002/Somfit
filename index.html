@@ -964,10 +964,17 @@ function MainApp({initProfile}){
   var [expandedWorkout,setExpandedWorkout]=useState(null);
   var [socialTab,setSocialTab]=useState("active");
   var [showCreateChallenge,setShowCreateChallenge]=useState(false);
+  var [cStep,setCStep]=useState(0);
+  var [cActivity,setCActivity]=useState("");
+  var [cMode,setCMode]=useState("");
+  var [cTeam,setCTeam]=useState("");
   var [cName,setCName]=useState("");
   var [cType,setCType]=useState("Steps");
   var [cGoal,setCGoal]=useState("");
   var [cDays,setCDays]=useState("7");
+  var [cStartDate,setCStartDate]=useState("");
+  var [cEndDate,setCEndDate]=useState("");
+  var [cTarget,setCTarget]=useState("50000");
   var myChallengePair=usePersist("myChallenges",[]);
   var myChallenges=myChallengePair[0],setMyChallenges=myChallengePair[1];
   var [waterMl,setWaterMl]=useState(function(){try{var v=localStorage.getItem("sf:waterMl");return v!==null?JSON.parse(v):0;}catch(e){return 0;}});
@@ -3138,44 +3145,151 @@ function MainApp({initProfile}){
             </div>;
           })()}
 
-          {/* Create Challenge Modal */}
-          {showCreateChallenge&&<div onClick={function(){setShowCreateChallenge(false);}} style={{position:"fixed",inset:0,zIndex:300,background:"rgba(0,0,0,0.75)",backdropFilter:"blur(8px)",display:"flex",alignItems:"flex-end",justifyContent:"center"}}>
-            <div onClick={function(e){e.stopPropagation();}} style={{width:"100%",maxWidth:420,borderRadius:"28px 28px 0 0",background:"linear-gradient(160deg,#140010,#1A001A)",border:"1px solid "+C.pink+"44",padding:"24px 20px 40px"}}>
-              <div style={{width:40,height:4,borderRadius:2,background:"rgba(255,255,255,0.15)",margin:"0 auto 20px"}}/>
-              <div style={{fontSize:16,fontWeight:900,color:C.text,marginBottom:4}}>Create Challenge</div>
-              <div style={{fontSize:11,color:C.muted,marginBottom:20}}>Set a goal and compete with friends</div>
-              <div style={{fontSize:11,fontWeight:700,color:C.muted,marginBottom:6,letterSpacing:0.5}}>CHALLENGE NAME</div>
-              <input value={cName} onChange={function(e){setCName(e.target.value);}} placeholder="e.g. Weekend Warriors 5K" style={{width:"100%",padding:"12px 14px",borderRadius:14,border:"1px solid rgba(255,255,255,0.15)",background:"rgba(255,255,255,0.06)",color:C.text,fontSize:13,outline:"none",boxSizing:"border-box",marginBottom:14}}/>
-              <div style={{fontSize:11,fontWeight:700,color:C.muted,marginBottom:8,letterSpacing:0.5}}>CHALLENGE TYPE</div>
-              <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:6,marginBottom:14}}>
-                {["Steps","Distance","Workouts","Calories","Streak","Custom"].map(function(t){
-                  var on=cType===t;
-                  return <button key={t} onClick={function(){setCType(t);}} style={{padding:"9px 4px",borderRadius:12,border:"1px solid "+(on?C.pink+"88":"rgba(255,255,255,0.12)"),background:on?C.pink+"22":"rgba(255,255,255,0.04)",color:on?C.pink:C.muted,fontSize:11,fontWeight:on?800:500,cursor:"pointer"}}>{t}</button>;
-                })}
-              </div>
-              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:20}}>
-                <div>
-                  <div style={{fontSize:11,fontWeight:700,color:C.muted,marginBottom:6,letterSpacing:0.5}}>GOAL</div>
-                  <input value={cGoal} onChange={function(e){setCGoal(e.target.value);}} placeholder={cType==="Steps"?"50,000":cType==="Distance"?"25 km":"10"} style={{width:"100%",padding:"11px 12px",borderRadius:12,border:"1px solid rgba(255,255,255,0.12)",background:"rgba(255,255,255,0.06)",color:C.text,fontSize:13,outline:"none",boxSizing:"border-box"}}/>
+          {/* Create Challenge — Samsung Health style multi-step flow */}
+          {showCreateChallenge&&(function(){
+            var ACTIVITIES=[
+              {id:"walking",label:"Walking",icon:"🚶",desc:"Count steps while walking",color:"#4CAF50",bg:"linear-gradient(135deg,#1B5E20,#388E3C)"},
+              {id:"running",label:"Running",icon:"🏃",desc:"Track distance & pace",color:"#FF6D00",bg:"linear-gradient(135deg,#E65100,#FF8F00)"},
+              {id:"cycling",label:"Cycling",icon:"🚴",desc:"Measure cycling distance",color:"#1565C0",bg:"linear-gradient(135deg,#0D47A1,#1976D2)"},
+              {id:"hiit",label:"HIIT",icon:"⚡",desc:"Count workout sessions",color:"#E91E63",bg:"linear-gradient(135deg,#880E4F,#E91E63)"},
+            ];
+            var MODES=[
+              {id:"first",label:"Get there first",icon:"🏁",desc:"Set a target. First to reach it wins!"},
+              {id:"farthest",label:"Go the farthest",desc:"Who gets the most while the challenge lasts.",icon:"📏"},
+            ];
+            var act=ACTIVITIES.find(function(a){return a.id===cActivity;})||ACTIVITIES[0];
+            var resetCreate=function(){setCStep(0);setCActivity("");setCMode("");setCTeam("");setCName("");setCGoal("");setCTarget("50000");setCStartDate("");setCEndDate("");};
+            var today=new Date();
+            var todayStr=today.toLocaleDateString("en-US",{weekday:"short",month:"short",day:"numeric"});
+            var endDefault=new Date(today);endDefault.setDate(today.getDate()+7);
+            var endStr=endDefault.toLocaleDateString("en-US",{weekday:"short",month:"short",day:"numeric"});
+            return <div onClick={function(){setShowCreateChallenge(false);resetCreate();}} style={{position:"fixed",inset:0,zIndex:300,background:"rgba(0,0,0,0.6)",backdropFilter:"blur(10px)",display:"flex",alignItems:"flex-end",justifyContent:"center"}}>
+              <div onClick={function(e){e.stopPropagation();}} style={{width:"100%",maxWidth:430,borderRadius:"28px 28px 0 0",background:"#111318",border:"1px solid rgba(255,255,255,0.1)",overflow:"hidden",maxHeight:"90vh",display:"flex",flexDirection:"column"}}>
+
+                {/* Header */}
+                <div style={{padding:"20px 20px 0",flexShrink:0}}>
+                  <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:16}}>
+                    {cStep>0&&<button onClick={function(){setCStep(cStep-1);}} style={{background:"rgba(255,255,255,0.08)",border:"none",borderRadius:50,width:34,height:34,color:C.text,fontSize:18,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>‹</button>}
+                    <div style={{flex:1}}>
+                      <div style={{fontSize:17,fontWeight:900,color:"#fff"}}>
+                        {cStep===0?"Choose an activity":cStep===1?"Select a challenge":cStep===2?"Set up your challenge":null}
+                      </div>
+                      {cStep===2&&<div style={{fontSize:12,color:C.muted,marginTop:2}}>
+                        {act.icon} {act.label} · {cMode==="first"?"Get there first":"Go the farthest"} · {cTeam==="team"?"Team":"Individual"}
+                      </div>}
+                    </div>
+                    <button onClick={function(){setShowCreateChallenge(false);resetCreate();}} style={{background:"rgba(255,255,255,0.08)",border:"none",borderRadius:50,width:34,height:34,color:C.muted,fontSize:16,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>✕</button>
+                  </div>
+                  {/* Step dots */}
+                  <div style={{display:"flex",gap:6,marginBottom:20,justifyContent:"center"}}>
+                    {[0,1,2].map(function(s){return <div key={s} style={{width:s===cStep?24:6,height:6,borderRadius:3,background:s<=cStep?act.color:"rgba(255,255,255,0.15)",transition:"all 0.3s"}}/>;})}</div>
                 </div>
-                <div>
-                  <div style={{fontSize:11,fontWeight:700,color:C.muted,marginBottom:6,letterSpacing:0.5}}>DURATION</div>
-                  <select value={cDays} onChange={function(e){setCDays(e.target.value);}} style={{width:"100%",padding:"11px 12px",borderRadius:12,border:"1px solid rgba(255,255,255,0.12)",background:"rgba(30,10,30,0.9)",color:C.text,fontSize:13,outline:"none",boxSizing:"border-box"}}>
-                    {["3","5","7","14","30"].map(function(d){return <option key={d} value={d}>{d} days</option>;})}
-                  </select>
-                </div>
+
+                {/* Step 0 — Choose activity */}
+                {cStep===0&&<div style={{padding:"0 20px 32px",overflowY:"auto"}}>
+                  <div style={{fontSize:12,color:C.muted,textAlign:"center",marginBottom:20}}>What type of exercise do you want to do together?</div>
+                  <div style={{display:"flex",flexDirection:"column",gap:10}}>
+                    {ACTIVITIES.map(function(a){
+                      return <button key={a.id} onClick={function(){setCActivity(a.id);setCStep(1);}} style={{display:"flex",alignItems:"center",gap:16,padding:"16px 18px",borderRadius:20,border:"1px solid rgba(255,255,255,0.08)",background:"rgba(255,255,255,0.04)",cursor:"pointer",textAlign:"left"}}>
+                        <div style={{width:56,height:56,borderRadius:50,background:a.bg,display:"flex",alignItems:"center",justifyContent:"center",fontSize:26,flexShrink:0}}>{a.icon}</div>
+                        <div>
+                          <div style={{fontSize:15,fontWeight:800,color:"#fff"}}>{a.label}</div>
+                          <div style={{fontSize:11,color:C.muted,marginTop:2}}>{a.desc}</div>
+                        </div>
+                        <div style={{marginLeft:"auto",fontSize:18,color:C.muted}}>›</div>
+                      </button>;
+                    })}
+                  </div>
+                </div>}
+
+                {/* Step 1 — Select challenge mode */}
+                {cStep===1&&<div style={{padding:"0 20px 32px",overflowY:"auto"}}>
+                  <div style={{fontSize:12,color:C.muted,textAlign:"center",marginBottom:20}}>Compete against 1–30 people. Individual or team.</div>
+                  {MODES.map(function(m){
+                    return <div key={m.id} style={{borderRadius:20,border:"1px solid rgba(255,255,255,0.1)",background:"rgba(255,255,255,0.03)",padding:"18px 16px",marginBottom:12}}>
+                      <div style={{fontSize:15,fontWeight:900,color:"#fff",marginBottom:4}}>{m.icon} {m.label}</div>
+                      <div style={{fontSize:12,color:C.muted,marginBottom:14}}>{m.desc}</div>
+                      <div style={{display:"flex",gap:10}}>
+                        {["individual","team"].map(function(t){
+                          var icons={individual:"👤",team:"👥"};
+                          return <button key={t} onClick={function(){setCMode(m.id);setCTeam(t);setCStep(2);}} style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",gap:6,padding:"14px 8px",borderRadius:16,border:"1px solid rgba(255,255,255,0.1)",background:"rgba(255,255,255,0.05)",cursor:"pointer"}}>
+                            <div style={{width:44,height:44,borderRadius:50,background:"rgba(255,255,255,0.08)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:20}}>{icons[t]}</div>
+                            <div style={{fontSize:12,fontWeight:700,color:"#fff",textTransform:"capitalize"}}>{t}</div>
+                          </button>;
+                        })}
+                      </div>
+                    </div>;
+                  })}
+                </div>}
+
+                {/* Step 2 — Set title + dates/target */}
+                {cStep===2&&<div style={{padding:"0 20px 24px",overflowY:"auto"}}>
+                  <div style={{fontSize:12,color:C.muted,textAlign:"center",marginBottom:16}}>
+                    {cMode==="first"?"First person to reach the target wins.":"Whoever goes the farthest by the end date wins."}
+                  </div>
+                  {/* Title input */}
+                  <input
+                    value={cName}
+                    onChange={function(e){setCName(e.target.value);}}
+                    placeholder="Challenge title"
+                    style={{width:"100%",padding:"16px",borderRadius:16,border:"1px solid rgba(255,255,255,0.12)",background:"rgba(255,255,255,0.06)",color:"#fff",fontSize:14,outline:"none",boxSizing:"border-box",marginBottom:12,fontWeight:600}}
+                  />
+                  {/* Date / target card */}
+                  <div style={{borderRadius:18,border:"1px solid rgba(255,255,255,0.1)",background:"rgba(255,255,255,0.04)",overflow:"hidden",marginBottom:20}}>
+                    <div style={{padding:"14px 16px",borderBottom:"1px solid rgba(255,255,255,0.07)",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                      <span style={{fontSize:13,color:C.muted}}>Start</span>
+                      <span style={{fontSize:13,fontWeight:700,color:"#fff"}}>{todayStr}</span>
+                    </div>
+                    {cMode==="farthest"
+                      ?<div style={{padding:"14px 16px",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                        <span style={{fontSize:13,color:C.muted}}>End</span>
+                        <span style={{fontSize:13,fontWeight:700,color:"#fff"}}>{endStr}</span>
+                      </div>
+                      :<div style={{padding:"14px 16px",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                        <span style={{fontSize:13,color:C.muted}}>Target</span>
+                        <div style={{display:"flex",alignItems:"center",gap:8}}>
+                          <input
+                            value={cTarget}
+                            onChange={function(e){setCTarget(e.target.value);}}
+                            style={{width:90,padding:"5px 10px",borderRadius:10,border:"1px solid rgba(255,255,255,0.15)",background:"rgba(255,255,255,0.08)",color:"#fff",fontSize:13,outline:"none",textAlign:"right",fontWeight:700}}
+                          />
+                          <span style={{fontSize:12,color:C.muted}}>{cActivity==="running"||cActivity==="cycling"?"km":"steps"}</span>
+                        </div>
+                      </div>
+                    }
+                  </div>
+                  {/* Cancel / Create */}
+                  <div style={{display:"flex",gap:10}}>
+                    <button onClick={function(){setShowCreateChallenge(false);resetCreate();}} style={{flex:1,padding:"14px",borderRadius:16,border:"1px solid rgba(255,255,255,0.15)",background:"transparent",color:C.muted,fontSize:14,fontWeight:700,cursor:"pointer"}}>Cancel</button>
+                    <button onClick={function(){
+                      if(!cName.trim()) return;
+                      var actIcons={walking:"🚶",running:"🏃",cycling:"🚴",hiit:"⚡"};
+                      var actColors={walking:"#4CAF50",running:"#FF6D00",cycling:"#1565C0",hiit:"#E91E63"};
+                      var actBgs={walking:"linear-gradient(160deg,#1B5E20,#2E7D32,#388E3C)",running:"linear-gradient(160deg,#E65100,#F57C00,#FF8F00)",cycling:"linear-gradient(160deg,#0D47A1,#1565C0,#1976D2)",hiit:"linear-gradient(160deg,#880E4F,#C2185B,#E91E63)"};
+                      var unit=cActivity==="running"||cActivity==="cycling"?"km":"steps";
+                      var goalStr=cMode==="first"?cTarget+" "+unit:"Most "+unit;
+                      var newC={
+                        title:cName,icon:actIcons[cActivity]||"🎯",
+                        color:actColors[cActivity]||C.pink,
+                        color2:actColors[cActivity]||C.pink,
+                        bg:actBgs[cActivity]||"linear-gradient(160deg,#1a1a2e,#333)",
+                        goal:goalStr,unit:unit,
+                        participants:1,ends:todayStr+" – "+endStr,daysLeft:7,
+                        mySteps:0,scene:actIcons[cActivity]||"🎯",
+                        leaderboard:[{rank:1,name:"Mohamed",steps:0,avatar:"🏃",isMe:true}],
+                        aiMsg:"Challenge created! Invite friends to compete.",
+                        badge:"",mode:cMode,team:cTeam,joined:true,progress:0,steps:[],days:cDays,
+                      };
+                      setMyChallenges(function(prev){return [newC].concat(prev);});
+                      resetCreate();
+                      setShowCreateChallenge(false);
+                      setSocialTab("mine");
+                    }} style={{flex:1,padding:"14px",borderRadius:16,border:"none",background:act.bg,color:"#fff",fontSize:14,fontWeight:900,cursor:"pointer"}}>Create</button>
+                  </div>
+                </div>}
               </div>
-              <button onClick={function(){
-                if(!cName.trim()) return;
-                var icons={Steps:"👣",Distance:"🏃",Workouts:"🏋️",Calories:"🔥",Streak:"📅",Custom:"🎯"};
-                var colors={Steps:C.green,Distance:C.cyan,Workouts:C.purple,Calories:C.red,Streak:C.amber,Custom:C.pink};
-                var newC={title:cName,icon:icons[cType]||"🎯",color:colors[cType]||C.pink,goal:cGoal+" "+cType,days:cDays,ends:cDays+" days",participants:1,progress:0,joined:true,steps:[]};
-                setMyChallenges(function(prev){return [newC].concat(prev);});
-                setCName("");setCGoal("");setCDays("7");setCType("Steps");
-                setShowCreateChallenge(false);setSocialTab("mine");
-              }} style={{width:"100%",padding:"14px",borderRadius:16,border:"none",background:"linear-gradient(135deg,"+C.pink+","+C.purple+")",color:"#fff",fontSize:14,fontWeight:900,cursor:"pointer"}}>🚀 Create Challenge</button>
-            </div>
-          </div>}
+            </div>;
+          })()}
 
           {/* Add People to Challenge sheet */}
           {inviteSheet!==null&&myChallenges[inviteSheet]&&(function(){
