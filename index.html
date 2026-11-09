@@ -284,12 +284,36 @@ const CUSTOM_PLANS=[
 ];
 
 const CHALLENGES=[
-  {title:"10K Steps Daily",icon:"👣",color:C.green,participants:12847,ends:"3 days",goal:"70,000 steps",done:"51,240 steps",progress:0.73,
-   steps:[{l:"Day 1 – 10,000 steps",done:true},{l:"Day 2 – 10,000 steps",done:true},{l:"Day 3 – 10,000 steps",done:true},{l:"Day 4 – 10,000 steps",done:false},{l:"Day 5 – 10,000 steps",done:false},{l:"Day 6 – 10,000 steps",done:false},{l:"Day 7 – 10,000 steps",done:false}]},
-  {title:"March Marathon Prep",icon:"🏃",color:C.cyan,participants:4231,ends:"12 days",goal:"150 km",done:"89 km",progress:0.59,
-   steps:[{l:"Week 1 – 30 km",done:true},{l:"Week 2 – 35 km",done:true},{l:"Week 3 – 40 km",done:false},{l:"Week 4 – 45 km",done:false}]},
-  {title:"30-Day HIIT Blast",icon:"⚡",color:C.pink,participants:8904,ends:"18 days",goal:"30 sessions",done:"12 sessions",progress:0.4,
-   steps:[{l:"Week 1 – 3 sessions",done:true},{l:"Week 2 – 3 sessions",done:true},{l:"Week 3 – 3 sessions",done:false},{l:"Week 4 – 3 sessions",done:false}]},
+  {title:"Walking Challenge",icon:"🚶",color:"#4CAF50",color2:"#1B5E20",bg:"linear-gradient(160deg,#1B5E20,#2E7D32,#388E3C)",participants:21,ends:"Nov 1–28",daysLeft:19,goal:"280,000 steps",unit:"steps",mySteps:67420,
+   leaderboard:[
+     {rank:1,name:"D*******",time:"10:04",steps:155338,avatar:"🧑"},
+     {rank:2,name:"W***",time:"10:15",steps:124553,avatar:"👩"},
+     {rank:3,name:"A***",time:"10:29",steps:121156,avatar:"🧑‍🦱"},
+     {rank:4,name:"Mohamed",time:"10:01",steps:107562,avatar:"🏃",isMe:true},
+     {rank:5,name:"A***************",time:"10:36",steps:103250,avatar:"👨"},
+   ],
+   badge:"🏆",aiMsg:"You're in 4th place! Walk 47,594 more steps to reach 3rd place.",
+   scene:"🌿🌳🌄"},
+  {title:"Running Challenge",icon:"🏃",color:"#FF6D00",color2:"#E65100",bg:"linear-gradient(160deg,#E65100,#F57C00,#FF8F00)",participants:18,ends:"Nov 1–30",daysLeft:21,goal:"100 km",unit:"km",mySteps:34.2,
+   leaderboard:[
+     {rank:1,name:"K***",time:"06:12",steps:88.4,avatar:"🧑"},
+     {rank:2,name:"S***",time:"06:45",steps:71.2,avatar:"👩"},
+     {rank:3,name:"Mohamed",time:"07:10",steps:34.2,avatar:"🏃",isMe:true},
+     {rank:4,name:"H***",time:"07:30",steps:28.6,avatar:"👨"},
+     {rank:5,name:"R***",time:"08:00",steps:19.1,avatar:"🧑‍🦱"},
+   ],
+   badge:"🥉",aiMsg:"You're 3rd! Run 37.2 km more to stay ahead of 4th place.",
+   scene:"🏙️🌅🏃"},
+  {title:"30-Day HIIT Blast",icon:"⚡",color:"#E91E63",color2:"#880E4F",bg:"linear-gradient(160deg,#880E4F,#C2185B,#E91E63)",participants:34,ends:"Nov 1–30",daysLeft:21,goal:"30 sessions",unit:"sessions",mySteps:12,
+   leaderboard:[
+     {rank:1,name:"F***",time:"07:00",steps:28,avatar:"👩"},
+     {rank:2,name:"A***",time:"07:15",steps:25,avatar:"🧑"},
+     {rank:3,name:"B***",time:"07:30",steps:18,avatar:"👨"},
+     {rank:4,name:"Mohamed",time:"08:00",steps:12,avatar:"🏃",isMe:true},
+     {rank:5,name:"T***",time:"09:00",steps:9,avatar:"👩‍🦱"},
+   ],
+   badge:"",aiMsg:"Complete 6 more sessions this week to break into the top 3!",
+   scene:"💪🔥⚡"},
 ];
 
 const CHALLENGE_AWARDS=[
@@ -2815,100 +2839,120 @@ function MainApp({initProfile}){
             })}
           </div>
 
-          {/* ACTIVE subtab — joined challenges with friend progress */}
+          {/* ACTIVE subtab — joined challenges, scenic mini-banner + rank card */}
           {socialTab==="active"&&(function(){
             var joined=CHALLENGES.filter(function(_,i){return joinedChallenges[i];});
             var allJoined=joined.concat(myChallenges.filter(function(c){return c.joined;}));
-            if(allJoined.length===0) return <div style={{textAlign:"center",padding:"30px 0",color:C.muted}}>
-              <div style={{fontSize:36,marginBottom:8}}>🏁</div>
-              <div style={{fontSize:13,fontWeight:600}}>No active challenges</div>
-              <div style={{fontSize:11,marginTop:4}}>Browse challenges or create one with friends</div>
+            if(allJoined.length===0) return <div style={{textAlign:"center",padding:"40px 20px",color:C.muted}}>
+              <div style={{fontSize:48,marginBottom:12}}>🏁</div>
+              <div style={{fontSize:14,fontWeight:700,color:C.text}}>No active challenges</div>
+              <div style={{fontSize:12,marginTop:6,marginBottom:20}}>Browse challenges and join one to compete with friends</div>
+              <button onClick={function(){setSocialTab("browse");}} style={{background:"linear-gradient(135deg,"+C.green+","+C.cyan+")",border:"none",borderRadius:16,padding:"12px 28px",color:"#fff",fontWeight:800,fontSize:13,cursor:"pointer"}}>Browse Challenges →</button>
             </div>;
-            return <div style={{display:"flex",flexDirection:"column",gap:10}}>
+            return <div style={{display:"flex",flexDirection:"column",gap:14}}>
               {allJoined.map(function(ch,i){
-                var friendProgress=[
-                  {name:"Fadumo",avatar:"👩",pct:Math.random()*0.4+0.5},
-                  {name:"Abdi",avatar:"👨",pct:Math.random()*0.3+0.3},
-                  {name:"Hodan",avatar:"👩‍🦱",pct:Math.random()*0.5+0.2},
-                ].slice(0,2);
-                return <div key={i} style={{borderRadius:20,padding:16,background:C.card,border:"1px solid "+ch.color+"55"}}>
-                  <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:12}}>
-                    <div style={{fontSize:26}}>{ch.icon}</div>
-                    <div style={{flex:1}}>
-                      <div style={{fontSize:13,fontWeight:800,color:C.text}}>{ch.title}</div>
-                      <div style={{fontSize:11,color:C.muted}}>⏱ {ch.ends} left · 🎯 {ch.goal}</div>
-                    </div>
-                    <button onClick={function(){setActiveChallenge(ch);}} style={{background:ch.color+"22",border:"1px solid "+ch.color+"55",borderRadius:10,padding:"5px 10px",fontSize:10,color:ch.color,fontWeight:800,cursor:"pointer"}}>Details</button>
-                  </div>
-                  {/* Your progress */}
-                  <div style={{marginBottom:10}}>
-                    <div style={{display:"flex",justifyContent:"space-between",fontSize:10,color:C.muted,marginBottom:4}}>
-                      <span>Your progress</span><span style={{color:ch.color,fontWeight:700}}>{Math.round(ch.progress*100)}%</span>
-                    </div>
-                    <div style={{background:"rgba(255,255,255,0.08)",borderRadius:8,height:8,overflow:"hidden"}}>
-                      <div style={{width:(ch.progress*100)+"%",background:"linear-gradient(90deg,"+ch.color+","+ch.color+"88)",height:"100%",borderRadius:8,transition:"width 0.5s"}}/>
-                    </div>
-                  </div>
-                  {/* Friend comparison */}
-                  <div style={{borderTop:"1px solid rgba(255,255,255,0.07)",paddingTop:10}}>
-                    <div style={{fontSize:10,color:C.muted,fontWeight:700,letterSpacing:0.5,marginBottom:6}}>VS FRIENDS</div>
-                    <div style={{display:"flex",flexDirection:"column",gap:5}}>
-                      {/* You */}
-                      <div style={{display:"flex",alignItems:"center",gap:8}}>
-                        <span style={{fontSize:14}}>🧑</span>
-                        <span style={{fontSize:11,fontWeight:700,color:C.green,width:52}}>You</span>
-                        <div style={{flex:1,background:"rgba(255,255,255,0.08)",borderRadius:6,height:6,overflow:"hidden"}}>
-                          <div style={{width:(ch.progress*100)+"%",background:C.green,height:"100%",borderRadius:6}}/>
-                        </div>
-                        <span style={{fontSize:10,color:C.green,fontWeight:700,width:28,textAlign:"right"}}>{Math.round(ch.progress*100)}%</span>
+                var me=ch.leaderboard?ch.leaderboard.find(function(p){return p.isMe;}):null;
+                var myRank=ch.leaderboard?ch.leaderboard.findIndex(function(p){return p.isMe;})+1:"-";
+                var myStepsVal=me?me.steps:ch.mySteps||0;
+                return <div key={i} style={{borderRadius:24,overflow:"hidden",boxShadow:"0 8px 32px rgba(0,0,0,0.5)"}}>
+                  {/* Compact banner */}
+                  <div style={{background:ch.bg||"linear-gradient(160deg,#1a1a2e,#333)",padding:"16px 18px",position:"relative",cursor:"pointer"}} onClick={function(){setActiveChallenge(ch);}}>
+                    <div style={{position:"absolute",top:0,left:0,right:0,bottom:0,opacity:0.15,fontSize:60,display:"flex",alignItems:"center",justifyContent:"center",lineHeight:1,overflow:"hidden",pointerEvents:"none"}}>{ch.scene||ch.icon}</div>
+                    <div style={{position:"relative",zIndex:1,display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+                      <div>
+                        <div style={{fontSize:16,fontWeight:900,color:"#fff"}}>{ch.icon} {ch.title}</div>
+                        <div style={{fontSize:11,color:"rgba(255,255,255,0.7)",marginTop:2}}>{ch.ends||ch.daysLeft+" days left"} · 👥 {ch.participants} joined</div>
                       </div>
-                      {friendProgress.map(function(fp,j){
-                        return <div key={j} style={{display:"flex",alignItems:"center",gap:8}}>
-                          <span style={{fontSize:14}}>{fp.avatar}</span>
-                          <span style={{fontSize:11,color:C.muted,width:52}}>{fp.name}</span>
-                          <div style={{flex:1,background:"rgba(255,255,255,0.08)",borderRadius:6,height:6,overflow:"hidden"}}>
-                            <div style={{width:(fp.pct*100)+"%",background:C.purple,height:"100%",borderRadius:6}}/>
-                          </div>
-                          <span style={{fontSize:10,color:C.muted,width:28,textAlign:"right"}}>{Math.round(fp.pct*100)}%</span>
+                      <div style={{textAlign:"center",background:"rgba(0,0,0,0.3)",borderRadius:14,padding:"8px 14px"}}>
+                        <div style={{fontSize:22,fontWeight:900,color:"#fff"}}>#{myRank}</div>
+                        <div style={{fontSize:9,color:"rgba(255,255,255,0.6)"}}>YOUR RANK</div>
+                      </div>
+                    </div>
+                  </div>
+                  {/* Stats + leaderboard snippet */}
+                  <div style={{background:"#111318",padding:"12px 16px"}}>
+                    <div style={{display:"flex",gap:8,marginBottom:12}}>
+                      <div style={{flex:1,background:"rgba(255,255,255,0.05)",borderRadius:12,padding:"10px 8px",textAlign:"center"}}>
+                        <div style={{fontSize:15,fontWeight:900,color:ch.color||C.green}}>{myStepsVal.toLocaleString()}</div>
+                        <div style={{fontSize:9,color:C.muted}}>{ch.unit||"steps"}</div>
+                      </div>
+                      <div style={{flex:1,background:"rgba(255,255,255,0.05)",borderRadius:12,padding:"10px 8px",textAlign:"center"}}>
+                        <div style={{fontSize:15,fontWeight:900,color:"#fff"}}>{ch.daysLeft||"-"}</div>
+                        <div style={{fontSize:9,color:C.muted}}>days left</div>
+                      </div>
+                      <div style={{flex:1,background:"rgba(255,255,255,0.05)",borderRadius:12,padding:"10px 8px",textAlign:"center"}}>
+                        <div style={{fontSize:15,fontWeight:900,color:"#fff"}}>{ch.goal}</div>
+                        <div style={{fontSize:9,color:C.muted}}>goal</div>
+                      </div>
+                    </div>
+                    {ch.leaderboard&&<div style={{marginBottom:10}}>
+                      {ch.leaderboard.slice(0,3).map(function(p,j){
+                        return <div key={j} style={{display:"flex",alignItems:"center",gap:8,padding:"6px 0",borderBottom:"1px solid rgba(255,255,255,0.06)"}}>
+                          <span style={{fontSize:14,width:20,textAlign:"center"}}>{j===0?"🥇":j===1?"🥈":"🥉"}</span>
+                          <span style={{fontSize:12,fontWeight:p.isMe?800:500,color:p.isMe?"#fff":C.muted,flex:1}}>{p.isMe?"You":p.name}</span>
+                          <span style={{fontSize:12,fontWeight:700,color:p.isMe?ch.color:C.text}}>{typeof p.steps==="number"?p.steps.toLocaleString():p.steps}</span>
                         </div>;
                       })}
-                    </div>
+                    </div>}
+                    <button onClick={function(){setActiveChallenge(ch);}} style={{width:"100%",padding:"10px",borderRadius:14,border:"none",background:ch.color||C.green,color:"#fff",fontSize:12,fontWeight:800,cursor:"pointer"}}>Open Dashboard →</button>
                   </div>
                 </div>;
               })}
             </div>;
           })()}
 
-          {/* BROWSE subtab */}
-          {socialTab==="browse"&&<div style={{display:"flex",flexDirection:"column",gap:10}}>
+          {/* BROWSE subtab — Google Fit style scenic cards with leaderboard */}
+          {socialTab==="browse"&&<div style={{display:"flex",flexDirection:"column",gap:14}}>
             {CHALLENGES.map(function(ch,i){
               var isJoined=joinedChallenges[i];
-              return <div key={i} style={{borderRadius:20,padding:16,background:C.card,border:"1px solid "+(isJoined?ch.color+"66":ch.color+"33")}}>
-                <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:10}}>
-                  <div style={{display:"flex",gap:10,alignItems:"center"}}>
-                    <div style={{fontSize:28}}>{ch.icon}</div>
-                    <div>
-                      <div style={{fontSize:13,fontWeight:800,color:C.text}}>{ch.title}</div>
-                      <div style={{fontSize:11,color:C.muted}}>👥 {ch.participants.toLocaleString()} · ⏱ {ch.ends} left</div>
+              var topEntry=ch.leaderboard[0];
+              return <div key={i} style={{borderRadius:24,overflow:"hidden",boxShadow:"0 8px 32px rgba(0,0,0,0.5)"}}>
+                {/* Scenic banner */}
+                <div style={{background:ch.bg,padding:"22px 18px 18px",position:"relative"}}>
+                  <div style={{position:"absolute",top:0,left:0,right:0,bottom:0,opacity:0.18,fontSize:80,display:"flex",alignItems:"center",justifyContent:"center",pointerEvents:"none",overflow:"hidden",lineHeight:1}}>{ch.scene}</div>
+                  <div style={{position:"relative",zIndex:1}}>
+                    <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
+                      <div>
+                        <div style={{fontSize:11,color:"rgba(255,255,255,0.7)",fontWeight:700,letterSpacing:1,marginBottom:4}}>{ch.ends}</div>
+                        <div style={{fontSize:20,fontWeight:900,color:"#fff",letterSpacing:-0.5}}>{ch.title}</div>
+                        <div style={{fontSize:12,color:"rgba(255,255,255,0.75)",marginTop:3}}>⏱ {ch.daysLeft} days left · 👥 {ch.participants} joined</div>
+                      </div>
+                      <div style={{fontSize:36,filter:"drop-shadow(0 2px 8px rgba(0,0,0,0.5))"}}>{ch.icon}</div>
+                    </div>
+                    <div style={{marginTop:14,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                      <div>
+                        <div style={{fontSize:10,color:"rgba(255,255,255,0.6)",marginBottom:2}}>GOAL</div>
+                        <div style={{fontSize:13,fontWeight:800,color:"#fff"}}>{ch.goal}</div>
+                      </div>
+                      {isJoined
+                        ?<div style={{background:"rgba(255,255,255,0.25)",backdropFilter:"blur(8px)",borderRadius:14,padding:"8px 18px",fontSize:12,color:"#fff",fontWeight:800,display:"flex",alignItems:"center",gap:5}}>✓ Joined</div>
+                        :<button onClick={function(){var j=Object.assign({},joinedChallenges);j[i]=true;setJoinedChallenges(j);setSocialTab("active");}} style={{background:"rgba(255,255,255,0.25)",backdropFilter:"blur(8px)",border:"1px solid rgba(255,255,255,0.4)",borderRadius:14,padding:"8px 18px",fontSize:12,color:"#fff",fontWeight:800,cursor:"pointer"}}>Join →</button>
+                      }
                     </div>
                   </div>
-                  {isJoined
-                    ?<Pill color={C.green} bg={C.green+"18"}>Joined ✓</Pill>
-                    :<button onClick={function(){var j=Object.assign({},joinedChallenges);j[i]=true;setJoinedChallenges(j);setSocialTab("active");}} style={{background:"linear-gradient(135deg,"+ch.color+","+ch.color+"AA)",border:"none",borderRadius:12,padding:"7px 14px",fontSize:11,color:"#fff",fontWeight:800,cursor:"pointer"}}>Join →</button>
-                  }
                 </div>
-                <div style={{fontSize:11,color:C.muted,marginBottom:8}}>🎯 Goal: <span style={{color:C.text,fontWeight:600}}>{ch.goal}</span></div>
-                <div style={{display:"flex",justifyContent:"space-between",fontSize:10,color:C.muted,marginBottom:5}}>
-                  <span>Community progress</span><span style={{color:ch.color,fontWeight:700}}>{Math.round(ch.progress*100)}%</span>
-                </div>
-                <div style={{background:"rgba(255,255,255,0.08)",borderRadius:8,height:7,overflow:"hidden"}}>
-                  <div style={{width:(ch.progress*100)+"%",background:"linear-gradient(90deg,"+ch.color+","+ch.color+"88)",height:"100%",borderRadius:8}}/>
-                </div>
-                {/* Milestone preview */}
-                <div style={{display:"flex",gap:4,marginTop:10}}>
-                  {ch.steps.map(function(s,j){
-                    return <div key={j} style={{flex:1,height:4,borderRadius:2,background:s.done?ch.color:"rgba(255,255,255,0.1)"}}/>;
+                {/* Leaderboard */}
+                <div style={{background:"#111318",padding:"14px 16px 16px"}}>
+                  <div style={{fontSize:10,color:C.muted,fontWeight:700,letterSpacing:1,marginBottom:10}}>LEADERBOARD</div>
+                  {ch.leaderboard.slice(0,5).map(function(p,j){
+                    var isMe=p.isMe;
+                    var pct=p.steps/(topEntry.steps||1)*100;
+                    return <div key={j} onClick={function(){setActiveChallenge(ch);}} style={{display:"flex",alignItems:"center",gap:10,padding:"9px 10px",marginBottom:4,borderRadius:14,background:isMe?"rgba(255,255,255,0.08)":"transparent",cursor:"pointer"}}>
+                      <div style={{fontSize:15,width:22,textAlign:"center",fontWeight:900,color:j===0?C.amber:j===1?"#C0C0C0":j===2?"#CD7F32":C.muted}}>{j===0?"🥇":j===1?"🥈":j===2?"🥉":j+1}</div>
+                      <div style={{width:32,height:32,borderRadius:50,background:isMe?ch.color+"33":"rgba(255,255,255,0.1)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:17,border:isMe?"2px solid "+ch.color:"none",flexShrink:0}}>{p.avatar}</div>
+                      <div style={{flex:1,minWidth:0}}>
+                        <div style={{fontSize:12,fontWeight:isMe?800:600,color:isMe?"#fff":C.muted,marginBottom:3}}>{isMe?"You (Mohamed)":p.name}</div>
+                        <div style={{background:"rgba(255,255,255,0.08)",borderRadius:4,height:4,overflow:"hidden"}}>
+                          <div style={{width:pct+"%",background:isMe?"linear-gradient(90deg,"+ch.color+","+ch.color+"AA)":"rgba(255,255,255,0.3)",height:"100%",borderRadius:4}}/>
+                        </div>
+                      </div>
+                      <div style={{textAlign:"right",flexShrink:0}}>
+                        <div style={{fontSize:12,fontWeight:800,color:isMe?ch.color:C.text}}>{typeof p.steps==="number"?p.steps.toLocaleString():p.steps}</div>
+                        <div style={{fontSize:9,color:C.muted}}>{ch.unit}</div>
+                      </div>
+                    </div>;
                   })}
+                  <button onClick={function(){setActiveChallenge(ch);}} style={{width:"100%",marginTop:6,padding:"10px",borderRadius:14,border:"1px solid rgba(255,255,255,0.1)",background:"rgba(255,255,255,0.05)",color:C.muted,fontSize:11,fontWeight:700,cursor:"pointer"}}>View Full Dashboard →</button>
                 </div>
               </div>;
             })}
@@ -2965,6 +3009,132 @@ function MainApp({initProfile}){
                   </div>
                 </div>;
               })}
+            </div>;
+          })()}
+
+          {/* CHALLENGE DETAIL MODAL — Samsung Health style */}
+          {activeChallenge&&(function(){
+            var ch=activeChallenge;
+            var me=ch.leaderboard.find(function(p){return p.isMe;})||{rank:4,steps:ch.mySteps,avatar:"🏃"};
+            var myRank=ch.leaderboard.findIndex(function(p){return p.isMe;})+1;
+            var top=ch.leaderboard[0];
+            var myPct=me.steps/(top.steps||1);
+            var totalXP=1240;
+            var levelXP=1500;
+            var BADGES=[
+              {icon:"🔥",label:"7-Day Streak"},{icon:"⚡",label:"Speed Demon"},{icon:"🌟",label:"Top 10%"},{icon:"💪",label:"Consistency"},{icon:"🎯",label:"Goal Crusher"},
+            ];
+            return <div onClick={function(){setActiveChallenge(null);}} style={{position:"fixed",inset:0,zIndex:400,background:"rgba(0,0,0,0.85)",backdropFilter:"blur(10px)",overflow:"auto",WebkitOverflowScrolling:"touch"}}>
+              <div onClick={function(e){e.stopPropagation();}} style={{minHeight:"100%",maxWidth:420,margin:"0 auto",paddingBottom:40}}>
+                {/* Hero banner */}
+                <div style={{background:ch.bg,padding:"52px 20px 24px",position:"relative"}}>
+                  <button onClick={function(){setActiveChallenge(null);}} style={{position:"absolute",top:16,left:16,background:"rgba(0,0,0,0.3)",border:"none",borderRadius:50,width:36,height:36,color:"#fff",fontSize:20,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>‹</button>
+                  <div style={{position:"absolute",top:0,left:0,right:0,bottom:0,opacity:0.15,fontSize:120,display:"flex",alignItems:"center",justifyContent:"center",lineHeight:1,overflow:"hidden",pointerEvents:"none"}}>{ch.scene}</div>
+                  <div style={{position:"relative",zIndex:1,textAlign:"center"}}>
+                    <div style={{fontSize:48,marginBottom:8,filter:"drop-shadow(0 4px 12px rgba(0,0,0,0.5))"}}>{ch.icon}</div>
+                    <div style={{fontSize:22,fontWeight:900,color:"#fff",letterSpacing:-0.5}}>{ch.title}</div>
+                    <div style={{fontSize:12,color:"rgba(255,255,255,0.75)",marginTop:4}}>{ch.ends} · {ch.daysLeft} days left · {ch.participants} participants</div>
+                  </div>
+                </div>
+
+                {/* Profile card */}
+                <div style={{margin:"0 16px",marginTop:-20,borderRadius:20,background:"#1A1D22",border:"1px solid rgba(255,255,255,0.1)",padding:"20px 16px",position:"relative",zIndex:2}}>
+                  <div style={{display:"flex",alignItems:"center",gap:14}}>
+                    <div style={{width:60,height:60,borderRadius:50,background:ch.color+"33",border:"3px solid "+ch.color,display:"flex",alignItems:"center",justifyContent:"center",fontSize:28,flexShrink:0}}>🏃</div>
+                    <div style={{flex:1}}>
+                      <div style={{fontSize:16,fontWeight:900,color:"#fff"}}>Mohamed</div>
+                      <div style={{fontSize:11,color:C.muted}}>Level 12 · Fitness Explorer</div>
+                      <div style={{marginTop:6}}>
+                        <div style={{display:"flex",justifyContent:"space-between",fontSize:9,color:C.muted,marginBottom:3}}>
+                          <span>XP {totalXP}</span><span>{levelXP} XP to Level 13</span>
+                        </div>
+                        <div style={{background:"rgba(255,255,255,0.1)",borderRadius:4,height:5,overflow:"hidden"}}>
+                          <div style={{width:(totalXP/levelXP*100)+"%",background:"linear-gradient(90deg,"+ch.color+","+ch.color+"AA)",height:"100%",borderRadius:4}}/>
+                        </div>
+                      </div>
+                    </div>
+                    <div style={{textAlign:"center"}}>
+                      <div style={{fontSize:28,fontWeight:900,color:ch.color}}>#{myRank}</div>
+                      <div style={{fontSize:9,color:C.muted}}>RANK</div>
+                    </div>
+                  </div>
+                  <div style={{display:"flex",gap:4,marginTop:14}}>
+                    <div style={{flex:1,textAlign:"center",background:"rgba(255,255,255,0.05)",borderRadius:12,padding:"10px 4px"}}>
+                      <div style={{fontSize:16,fontWeight:900,color:ch.color}}>{me.steps.toLocaleString()}</div>
+                      <div style={{fontSize:9,color:C.muted}}>{ch.unit.toUpperCase()}</div>
+                    </div>
+                    <div style={{flex:1,textAlign:"center",background:"rgba(255,255,255,0.05)",borderRadius:12,padding:"10px 4px"}}>
+                      <div style={{fontSize:16,fontWeight:900,color:"#fff"}}>{ch.daysLeft}</div>
+                      <div style={{fontSize:9,color:C.muted}}>DAYS LEFT</div>
+                    </div>
+                    <div style={{flex:1,textAlign:"center",background:"rgba(255,255,255,0.05)",borderRadius:12,padding:"10px 4px"}}>
+                      <div style={{fontSize:16,fontWeight:900,color:"#fff"}}>{ch.participants}</div>
+                      <div style={{fontSize:9,color:C.muted}}>FRIENDS</div>
+                    </div>
+                  </div>
+                  {/* AI insight */}
+                  <div style={{marginTop:12,padding:"10px 12px",borderRadius:12,background:ch.color+"18",border:"1px solid "+ch.color+"33"}}>
+                    <div style={{fontSize:11,color:ch.color,fontWeight:700}}>💡 {ch.aiMsg}</div>
+                  </div>
+                </div>
+
+                {/* Leaderboard full */}
+                <div style={{margin:"12px 16px 0",borderRadius:20,background:"#1A1D22",border:"1px solid rgba(255,255,255,0.08)",padding:"16px"}}>
+                  <div style={{fontSize:11,fontWeight:800,color:C.muted,letterSpacing:1,marginBottom:12}}>LEADERBOARD</div>
+                  {ch.leaderboard.map(function(p,j){
+                    var isMe=p.isMe;
+                    var pct=p.steps/(top.steps||1)*100;
+                    return <div key={j} style={{display:"flex",alignItems:"center",gap:10,padding:"10px 10px",marginBottom:5,borderRadius:16,background:isMe?"rgba(255,255,255,0.08)":"transparent",border:isMe?"1px solid "+ch.color+"44":"1px solid transparent"}}>
+                      <div style={{fontSize:18,width:26,textAlign:"center",fontWeight:900,color:j===0?C.amber:j===1?"#C0C0C0":j===2?"#CD7F32":C.muted}}>{j===0?"🥇":j===1?"🥈":j===2?"🥉":j+1}</div>
+                      <div style={{width:36,height:36,borderRadius:50,background:isMe?ch.color+"33":"rgba(255,255,255,0.1)",border:isMe?"2px solid "+ch.color:"none",display:"flex",alignItems:"center",justifyContent:"center",fontSize:19,flexShrink:0}}>{p.avatar}</div>
+                      <div style={{flex:1,minWidth:0}}>
+                        <div style={{fontSize:12,fontWeight:isMe?900:600,color:isMe?"#fff":C.text,marginBottom:4}}>{isMe?"You (Mohamed)":p.name}</div>
+                        <div style={{background:"rgba(255,255,255,0.08)",borderRadius:4,height:5,overflow:"hidden"}}>
+                          <div style={{width:pct+"%",background:isMe?"linear-gradient(90deg,"+ch.color+","+ch.color+"88)":"rgba(255,255,255,0.3)",height:"100%",borderRadius:4,transition:"width 0.6s"}}/>
+                        </div>
+                      </div>
+                      <div style={{textAlign:"right",flexShrink:0}}>
+                        <div style={{fontSize:13,fontWeight:800,color:isMe?ch.color:"#fff"}}>{typeof p.steps==="number"?p.steps.toLocaleString():p.steps}</div>
+                        <div style={{fontSize:9,color:C.muted}}>{ch.unit}</div>
+                      </div>
+                    </div>;
+                  })}
+                </div>
+
+                {/* Weekly Report */}
+                <div style={{margin:"12px 16px 0",borderRadius:20,background:"#1A1D22",border:"1px solid rgba(255,255,255,0.08)",padding:"16px"}}>
+                  <div style={{fontSize:11,fontWeight:800,color:C.muted,letterSpacing:1,marginBottom:14}}>WEEKLY REPORT</div>
+                  <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+                    {[
+                      {label:"Workout Duration",val:"4h 23m",prev:"3h 51m",up:true,icon:"⏱"},
+                      {label:"Avg Daily "+ch.unit,val:Math.round(me.steps/7).toLocaleString(),prev:Math.round(me.steps/7*0.85).toLocaleString(),up:true,icon:"📈"},
+                      {label:"Active Days",val:"6 / 7",prev:"5 / 7",up:true,icon:"📅"},
+                      {label:"Calories Burned",val:"2,840",prev:"2,510",up:true,icon:"🔥"},
+                    ].map(function(s,si){
+                      return <div key={si} style={{background:"rgba(255,255,255,0.05)",borderRadius:14,padding:"12px 10px"}}>
+                        <div style={{fontSize:16,marginBottom:4}}>{s.icon}</div>
+                        <div style={{fontSize:9,color:C.muted,fontWeight:700,letterSpacing:0.5}}>{s.label.toUpperCase()}</div>
+                        <div style={{fontSize:16,fontWeight:900,color:"#fff",margin:"2px 0"}}>{s.val}</div>
+                        <div style={{fontSize:9,color:s.up?C.green:C.red}}>{s.up?"▲":"▼"} vs {s.prev}</div>
+                      </div>;
+                    })}
+                  </div>
+                </div>
+
+                {/* Badges */}
+                <div style={{margin:"12px 16px 0",borderRadius:20,background:"#1A1D22",border:"1px solid rgba(255,255,255,0.08)",padding:"16px"}}>
+                  <div style={{fontSize:11,fontWeight:800,color:C.muted,letterSpacing:1,marginBottom:12}}>BADGES</div>
+                  <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
+                    {BADGES.map(function(b,bi){
+                      return <div key={bi} style={{display:"flex",flexDirection:"column",alignItems:"center",gap:4,background:"rgba(255,255,255,0.06)",borderRadius:14,padding:"12px 10px",minWidth:60}}>
+                        <div style={{fontSize:28}}>{b.icon}</div>
+                        <div style={{fontSize:9,color:C.muted,textAlign:"center",fontWeight:600}}>{b.label}</div>
+                      </div>;
+                    })}
+                  </div>
+                </div>
+
+              </div>
             </div>;
           })()}
 
