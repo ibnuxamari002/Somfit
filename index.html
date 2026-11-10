@@ -3153,8 +3153,23 @@ function MainApp({initProfile}){
                     {/* Add People from friends list */}
                     <button onClick={function(){
                       var myIdx=ch._myIdx;
-                      if(myIdx!==undefined){setActiveChallenge(null);setInviteSheet(myIdx);}
-                      else{setToast("Join or create this challenge first to invite people");}
+                      if(myIdx!==undefined){
+                        // User-created challenge — use existing index
+                        setActiveChallenge(null);setInviteSheet(myIdx);
+                      } else {
+                        // Browse/preset challenge — find or add to myChallenges then invite
+                        var existing=myChallenges.findIndex(function(c){return c.title===ch.title;});
+                        if(existing>=0){
+                          setActiveChallenge(null);setInviteSheet(existing);
+                        } else {
+                          // Add a copy of this challenge to myChallenges
+                          var newCh=Object.assign({},ch,{participants:1,invitedNames:[],joined:true});
+                          var newList=myChallenges.concat([newCh]);
+                          setMyChallenges(newList);
+                          try{localStorage.setItem("myChallenges",JSON.stringify(newList));}catch(e){}
+                          setActiveChallenge(null);setInviteSheet(newList.length-1);
+                        }
+                      }
                     }} style={{flex:1,padding:"13px 10px",borderRadius:16,border:"1px solid "+(ch.color||C.green)+"55",background:(ch.color||C.green)+"14",color:(ch.color||C.green),fontSize:13,fontWeight:800,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:8}}>
                       👥 Add People
                     </button>
