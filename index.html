@@ -3237,7 +3237,7 @@ function MainApp({initProfile}){
             var endStr=cEndDate?new Date(cEndDate).toLocaleDateString("en-US",{weekday:"short",month:"short",day:"numeric"}):endDefault.toLocaleDateString("en-US",{weekday:"short",month:"short",day:"numeric"});
             var unit=cActivity==="running"||cActivity==="cycling"?"km":"steps";
             /* step background tint shifts per step */
-            var stepBg=cStep===0?"linear-gradient(180deg,#0D1117 0%,#111318 100%)":cStep===1?"linear-gradient(180deg,#0a1020 0%,#111318 100%)":"linear-gradient(180deg,"+act.color+"18 0%,#111318 60%)";
+            var stepBg=cStep===0?"linear-gradient(160deg,#0D1117 0%,#0a1a0f 40%,#111318 100%)":cStep===1?"linear-gradient(160deg,#0a2a0e 0%,#1a4a1a 30%,#0d2d12 60%,#0a1a0f 100%)":"linear-gradient(180deg,"+act.color+"22 0%,#111318 60%)";
             return <div onClick={function(){setShowCreateChallenge(false);resetCreate();}} style={{position:"fixed",inset:0,zIndex:300,background:"rgba(0,0,0,0.75)",backdropFilter:"blur(14px)",display:"flex",alignItems:"flex-end",justifyContent:"center"}}>
               <div onClick={function(e){e.stopPropagation();}} style={{width:"100%",maxWidth:430,borderRadius:"32px 32px 0 0",background:stepBg,border:"1px solid rgba(255,255,255,0.12)",overflow:"hidden",maxHeight:"92vh",display:"flex",flexDirection:"column",boxShadow:"0 -16px 60px rgba(0,0,0,0.6)"}}>
 
@@ -3297,35 +3297,48 @@ function MainApp({initProfile}){
                 </div>}
 
                 {/* ── STEP 1: Select challenge mode ── */}
-                {cStep===1&&<div style={{padding:"0 16px 28px",overflowY:"auto"}}>
-                  <div style={{fontSize:12,color:"rgba(255,255,255,0.45)",textAlign:"center",marginBottom:16}}>Compete against 1–30 people in an individual challenge, or create a challenge with two competing teams.</div>
+                {cStep===1&&<div style={{padding:"0 16px 28px",overflowY:"auto",position:"relative"}}>
+                  {/* Decorative glowing orbs */}
+                  <div style={{position:"absolute",top:-20,left:-30,width:160,height:160,borderRadius:"50%",background:"radial-gradient(circle,rgba(76,175,80,0.25) 0%,transparent 70%)",pointerEvents:"none",zIndex:0}}/>
+                  <div style={{position:"absolute",top:60,right:-40,width:120,height:120,borderRadius:"50%",background:"radial-gradient(circle,rgba(129,199,132,0.15) 0%,transparent 70%)",pointerEvents:"none",zIndex:0}}/>
+                  <div style={{position:"absolute",bottom:0,left:"50%",transform:"translateX(-50%)",width:200,height:100,borderRadius:"50%",background:"radial-gradient(circle,rgba(56,142,60,0.2) 0%,transparent 70%)",pointerEvents:"none",zIndex:0}}/>
+                  <div style={{fontSize:12,color:"rgba(255,255,255,0.5)",textAlign:"center",marginBottom:18,position:"relative",zIndex:1}}>Compete against 1–30 people in an individual challenge, or create a challenge with two competing teams.</div>
+                  <div style={{position:"relative",zIndex:1}}>
                   {MODES.map(function(m,mi){
-                    return <div key={m.id} style={{borderRadius:22,border:"1px solid rgba(255,255,255,0.1)",background:"linear-gradient(135deg,rgba(255,255,255,0.06),rgba(255,255,255,0.02))",padding:"16px 14px",marginBottom:10,boxShadow:"0 4px 20px rgba(0,0,0,0.3)"}}>
-                      <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:4}}>
-                        <img src={m.tw} alt={m.icon} style={{width:22,height:22,objectFit:"contain"}} onError={function(e){e.target.replaceWith(document.createTextNode(m.icon));}}/>
-                        <div style={{fontSize:15,fontWeight:900,color:"#fff"}}>{m.label}</div>
+                    var mColor=mi===0?"#66BB6A":"#FFA726";
+                    var mGlow=mi===0?"rgba(76,175,80,0.3)":"rgba(255,167,38,0.25)";
+                    var mBorder=mi===0?"rgba(102,187,106,0.35)":"rgba(255,167,38,0.3)";
+                    return <div key={m.id} style={{borderRadius:24,border:"1px solid "+mBorder,background:mi===0?"linear-gradient(135deg,rgba(27,94,32,0.6),rgba(21,76,27,0.4))":"linear-gradient(135deg,rgba(45,30,10,0.6),rgba(35,25,8,0.4))",padding:"18px 14px",marginBottom:12,boxShadow:"0 8px 32px "+mGlow+", inset 0 1px 0 rgba(255,255,255,0.08)"}}>
+                      <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:6}}>
+                        <div style={{width:36,height:36,borderRadius:12,background:"linear-gradient(135deg,"+mColor+"33,"+mColor+"11)",border:"1px solid "+mColor+"44",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+                          <img src={m.tw} alt={m.icon} style={{width:20,height:20,objectFit:"contain"}} onError={function(e){e.target.replaceWith(document.createTextNode(m.icon));}}/>
+                        </div>
+                        <div>
+                          <div style={{fontSize:15,fontWeight:900,color:"#fff"}}>{m.label}</div>
+                          <div style={{fontSize:11,color:"rgba(255,255,255,0.5)",marginTop:1}}>{m.desc}</div>
+                        </div>
                       </div>
-                      <div style={{fontSize:11,color:"rgba(255,255,255,0.45)",marginBottom:14,paddingLeft:32}}>{m.desc}</div>
                       {/* Individual / Team buttons */}
-                      <div style={{display:"flex",gap:9}}>
+                      <div style={{display:"flex",gap:9,marginTop:12}}>
                         {[
                           {id:"individual",label:"Individual",tw:"https://cdnjs.cloudflare.com/ajax/libs/twemoji/14.0.2/svg/1f9cd.svg",fb:"🧍"},
                           {id:"team",       label:"Team",      tw:"https://cdnjs.cloudflare.com/ajax/libs/twemoji/14.0.2/svg/1f46f.svg",fb:"👥"},
                         ].map(function(t){
                           return <button key={t.id} onClick={function(){setCMode(m.id);setCTeam(t.id);setCStep(2);}}
-                            style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",gap:7,padding:"14px 8px",borderRadius:18,
-                              border:"1px solid rgba(255,255,255,0.1)",
-                              background:"linear-gradient(160deg,rgba(255,255,255,0.08),rgba(255,255,255,0.03))",
-                              cursor:"pointer",boxShadow:"0 2px 10px rgba(0,0,0,0.25)"}}>
-                            <div style={{width:48,height:48,borderRadius:50,background:"rgba(255,255,255,0.1)",display:"flex",alignItems:"center",justifyContent:"center"}}>
-                              <img src={t.tw} alt={t.fb} style={{width:28,height:28,objectFit:"contain"}} onError={function(e){e.target.replaceWith(document.createTextNode(t.fb));}}/>
+                            style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",gap:8,padding:"16px 8px",borderRadius:18,
+                              border:"1px solid "+mColor+"33",
+                              background:"linear-gradient(160deg,"+mColor+"18,"+mColor+"08)",
+                              cursor:"pointer",boxShadow:"0 4px 16px rgba(0,0,0,0.3)",transition:"all 0.15s"}}>
+                            <div style={{width:52,height:52,borderRadius:50,background:"linear-gradient(135deg,"+mColor+"30,"+mColor+"10)",border:"1px solid "+mColor+"44",display:"flex",alignItems:"center",justifyContent:"center",boxShadow:"0 0 16px "+mColor+"30"}}>
+                              <img src={t.tw} alt={t.fb} style={{width:30,height:30,objectFit:"contain"}} onError={function(e){e.target.replaceWith(document.createTextNode(t.fb));}}/>
                             </div>
-                            <div style={{fontSize:12,fontWeight:700,color:"#fff"}}>{t.label}</div>
+                            <div style={{fontSize:12,fontWeight:800,color:"#fff"}}>{t.label}</div>
                           </button>;
                         })}
                       </div>
                     </div>;
                   })}
+                  </div>
                 </div>}
 
                 {/* ── STEP 2: Set title + dates + target ── */}
