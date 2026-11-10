@@ -800,6 +800,8 @@ function MainApp({initProfile}){
   const [activeChallenge,setActiveChallenge]=useState(null);
   const [showAddFriend,setShowAddFriend]=useState(null);
   const [inviteSheet,setInviteSheet]=useState(null); // challenge index being invited to
+  const [toastMsg,setToastMsg]=useState("");
+  function setToast(msg){setToastMsg(msg);setTimeout(function(){setToastMsg("");},3000);};
   const [showNotif,setShowNotif]=useState(false);
   const [selectedAward,setSelectedAward]=useState(null);
   const [notifFilter,setNotifFilter]=useState("All");
@@ -2967,53 +2969,56 @@ function MainApp({initProfile}){
 
           {/* MY CHALLENGES subtab — challenges user created */}
           {socialTab==="mine"&&(function(){
-            if(myChallenges.length===0) return <div style={{textAlign:"center",padding:"30px 0",color:C.muted}}>
-              <div style={{fontSize:36,marginBottom:8}}>✨</div>
-              <div style={{fontSize:13,fontWeight:600}}>No challenges created yet</div>
-              <div style={{fontSize:11,marginTop:4,marginBottom:16}}>Create a challenge and invite your friends</div>
-              <button onClick={function(){setShowCreateChallenge(true);}} style={{background:"linear-gradient(135deg,"+C.pink+","+C.purple+")",border:"none",borderRadius:14,padding:"10px 24px",color:"#fff",fontWeight:800,fontSize:13,cursor:"pointer"}}>+ Create Challenge</button>
+            if(myChallenges.length===0) return <div style={{textAlign:"center",padding:"40px 20px",color:C.muted}}>
+              <div style={{fontSize:48,marginBottom:12}}>✨</div>
+              <div style={{fontSize:14,fontWeight:700,color:C.text}}>No challenges created yet</div>
+              <div style={{fontSize:12,marginTop:6,marginBottom:20}}>Create a challenge and invite your friends to compete</div>
+              <button onClick={function(){setShowCreateChallenge(true);}} style={{background:"linear-gradient(135deg,"+C.pink+","+C.purple+")",border:"none",borderRadius:16,padding:"12px 28px",color:"#fff",fontWeight:800,fontSize:13,cursor:"pointer"}}>+ Create Challenge</button>
             </div>;
-            return <div style={{display:"flex",flexDirection:"column",gap:10}}>
+            return <div style={{display:"flex",flexDirection:"column",gap:12}}>
               {myChallenges.map(function(ch,i){
-                return <div key={i} style={{borderRadius:20,padding:16,background:C.card,border:"1px solid "+ch.color+"44"}}>
-                  <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:10}}>
-                    <div style={{fontSize:26}}>{ch.icon}</div>
-                    <div style={{flex:1}}>
-                      <div style={{fontSize:13,fontWeight:800,color:C.text}}>{ch.title}</div>
-                      <div style={{fontSize:11,color:C.muted}}>🎯 {ch.goal} · ⏱ {ch.days} days</div>
+                var invNames=ch.invitedNames||[];
+                return <div key={i} style={{borderRadius:24,overflow:"hidden",boxShadow:"0 6px 24px rgba(0,0,0,0.4)"}}>
+                  {/* Banner — tap to open detail */}
+                  <div onClick={function(){setActiveChallenge(Object.assign({},ch,{_myIdx:i}));}} style={{background:ch.bg||"linear-gradient(135deg,#1a1a2e,#333)",padding:"18px 16px",position:"relative",cursor:"pointer"}}>
+                    <div style={{position:"absolute",top:0,left:0,right:0,bottom:0,opacity:0.12,fontSize:60,display:"flex",alignItems:"center",justifyContent:"center",lineHeight:1,overflow:"hidden",pointerEvents:"none"}}>{ch.scene||ch.icon}</div>
+                    <div style={{position:"relative",zIndex:1,display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+                      <div>
+                        <div style={{fontSize:11,color:"rgba(255,255,255,0.6)",fontWeight:700,letterSpacing:1,marginBottom:3}}>MY CHALLENGE</div>
+                        <div style={{fontSize:17,fontWeight:900,color:"#fff"}}>{ch.icon} {ch.title}</div>
+                        <div style={{fontSize:11,color:"rgba(255,255,255,0.65)",marginTop:3}}>🎯 {ch.goal} · ⏱ {ch.daysLeft||ch.days} days left</div>
+                      </div>
+                      <div style={{background:"rgba(255,255,255,0.2)",borderRadius:12,padding:"5px 12px",fontSize:11,color:"#fff",fontWeight:800}}>Creator</div>
                     </div>
-                    <Pill color={C.amber} bg={C.amber+"18"}>Creator</Pill>
                   </div>
-                  {/* Participants */}
-                  {ch.participants&&ch.participants>1&&(
-                    <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:10}}>
-                      <div style={{fontSize:11,color:C.muted}}>👥 {ch.participants} participant{ch.participants>1?"s":""}</div>
-                      {ch.invitedNames&&ch.invitedNames.map(function(n,ni){
-                        return <span key={ni} style={{fontSize:10,background:ch.color+"22",color:ch.color,borderRadius:8,padding:"2px 7px",fontWeight:700}}>{n}</span>;
-                      })}
+                  {/* Actions row */}
+                  <div style={{background:"#111318",padding:"12px 14px",display:"flex",gap:8}}>
+                    {/* Participants badge */}
+                    <div style={{display:"flex",alignItems:"center",gap:6,flex:1,background:"rgba(255,255,255,0.05)",borderRadius:12,padding:"9px 10px"}}>
+                      <span style={{fontSize:14}}>👥</span>
+                      <span style={{fontSize:12,fontWeight:700,color:ch.color||C.green}}>{ch.participants||1}</span>
+                      <span style={{fontSize:10,color:C.muted}}>joined</span>
                     </div>
-                  )}
-                  <div style={{display:"flex",gap:8}}>
-                    <button onClick={function(){
-                      var url=window.location.origin+window.location.pathname+"?join="+encodeURIComponent(ch.title)+"&goal="+encodeURIComponent(ch.goal)+"&days="+ch.days;
-                      var text="Join my Som Fit challenge!\n🏆 "+ch.title+"\n🎯 "+ch.goal+" in "+ch.days+" days\n\n"+url;
-                      if(navigator.share){
-                        navigator.share({title:"Join my Som Fit Challenge",text:text,url:url}).catch(function(){});
-                      } else {
-                        navigator.clipboard.writeText(text).then(function(){
-                          alert("Invite link copied to clipboard!");
-                        }).catch(function(){
-                          prompt("Copy this invite link:",url);
-                        });
-                      }
-                    }} style={{flex:1,padding:"9px",borderRadius:12,border:"1px solid "+C.border,background:"rgba(255,255,255,0.06)",color:C.text,fontSize:11,fontWeight:700,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:5}}>
-                      🔗 Share Invite
-                    </button>
-                    <button onClick={function(){setInviteSheet(i);}} style={{flex:1,padding:"9px",borderRadius:12,border:"1px solid "+C.green+"55",background:C.green+"12",color:C.green,fontSize:11,fontWeight:700,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:5}}>
+                    {/* Add People */}
+                    <button onClick={function(){setInviteSheet(i);}} style={{flex:2,padding:"9px 10px",borderRadius:12,border:"1px solid "+(ch.color||C.green)+"55",background:(ch.color||C.green)+"14",color:(ch.color||C.green),fontSize:12,fontWeight:800,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:6}}>
                       👥 Add People
                     </button>
-                    <button onClick={function(){setMyChallenges(function(prev){return prev.filter(function(_,j){return j!==i;});});}} style={{padding:"9px 12px",borderRadius:12,border:"1px solid "+C.red+"44",background:"transparent",color:C.red,fontSize:11,fontWeight:700,cursor:"pointer"}}>Delete</button>
+                    {/* Share */}
+                    <button onClick={function(){
+                      var url="https://ibnuxamari002.github.io/Somfit/?join="+encodeURIComponent(ch.title)+"&goal="+encodeURIComponent(ch.goal)+"&days="+(ch.daysLeft||ch.days||7);
+                      var text="🏆 Join my Som Fit challenge!\n\n"+ch.icon+" "+ch.title+"\n🎯 Goal: "+ch.goal+"\n⏱ "+( ch.daysLeft||ch.days||7)+" days\n\n👉 "+url;
+                      if(navigator.share){navigator.share({title:"Join "+ch.title,text:text,url:url}).catch(function(){});}
+                      else{navigator.clipboard.writeText(text).then(function(){setToast("Invite copied! Share it with friends 📋");}).catch(function(){});}
+                    }} style={{flex:2,padding:"9px 10px",borderRadius:12,border:"1px solid rgba(255,255,255,0.15)",background:"rgba(255,255,255,0.07)",color:"#fff",fontSize:12,fontWeight:800,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:6}}>
+                      🔗 Share
+                    </button>
+                    {/* Delete */}
+                    <button onClick={function(){if(window.confirm("Delete this challenge?")){setMyChallenges(function(prev){return prev.filter(function(_,j){return j!==i;});});}}} style={{padding:"9px 10px",borderRadius:12,border:"1px solid "+C.red+"44",background:"transparent",color:C.red,fontSize:11,fontWeight:700,cursor:"pointer"}}>🗑</button>
                   </div>
+                  {/* Invited names */}
+                  {invNames.length>0&&<div style={{background:"#0d1016",padding:"8px 14px 12px",display:"flex",gap:6,flexWrap:"wrap"}}>
+                    {invNames.map(function(n,ni){return <span key={ni} style={{fontSize:10,background:(ch.color||C.green)+"22",color:ch.color||C.green,borderRadius:8,padding:"3px 9px",fontWeight:700}}>{n}</span>;})}
+                  </div>}
                 </div>;
               })}
             </div>;
@@ -3139,6 +3144,31 @@ function MainApp({initProfile}){
                       </div>;
                     })}
                   </div>
+                </div>
+
+                {/* Invite & Share — always visible in detail */}
+                <div style={{margin:"12px 16px 0",borderRadius:20,background:"#1A1D22",border:"1px solid rgba(255,255,255,0.08)",padding:"16px"}}>
+                  <div style={{fontSize:11,fontWeight:800,color:C.muted,letterSpacing:1,marginBottom:12}}>INVITE FRIENDS</div>
+                  <div style={{display:"flex",gap:10}}>
+                    {/* Add People from friends list */}
+                    <button onClick={function(){
+                      var myIdx=ch._myIdx;
+                      if(myIdx!==undefined){setActiveChallenge(null);setInviteSheet(myIdx);}
+                      else{setToast("Join or create this challenge first to invite people");}
+                    }} style={{flex:1,padding:"13px 10px",borderRadius:16,border:"1px solid "+(ch.color||C.green)+"55",background:(ch.color||C.green)+"14",color:(ch.color||C.green),fontSize:13,fontWeight:800,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:8}}>
+                      👥 Add People
+                    </button>
+                    {/* Share invite link */}
+                    <button onClick={function(){
+                      var url="https://ibnuxamari002.github.io/Somfit/?join="+encodeURIComponent(ch.title)+"&goal="+encodeURIComponent(ch.goal)+"&days="+(ch.daysLeft||7);
+                      var text="🏆 Join my Som Fit challenge!\n\n"+ch.icon+" "+ch.title+"\n🎯 Goal: "+ch.goal+"\n⏱ "+(ch.daysLeft||7)+" days left\n\n👉 "+url;
+                      if(navigator.share){navigator.share({title:"Join "+ch.title,text:text,url:url}).catch(function(){});}
+                      else{navigator.clipboard.writeText(text).then(function(){setToast("✅ Invite text copied! Paste it in WhatsApp, Telegram or SMS");}).catch(function(){setToast("Copy this link: "+url);});}
+                    }} style={{flex:1,padding:"13px 10px",borderRadius:16,border:"1px solid rgba(255,255,255,0.15)",background:"rgba(255,255,255,0.07)",color:"#fff",fontSize:13,fontWeight:800,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:8}}>
+                      🔗 Share Link
+                    </button>
+                  </div>
+                  <div style={{fontSize:10,color:C.muted,textAlign:"center",marginTop:8}}>Share the link via WhatsApp, Telegram, or SMS</div>
                 </div>
 
               </div>
@@ -4036,6 +4066,11 @@ function MainApp({initProfile}){
           </div>
         </div>
       </div>
+
+      {/* Toast notification */}
+      {toastMsg&&<div style={{position:"fixed",bottom:90,left:"50%",transform:"translateX(-50%)",zIndex:9999,background:"rgba(20,20,30,0.95)",backdropFilter:"blur(12px)",border:"1px solid rgba(255,255,255,0.15)",borderRadius:16,padding:"12px 20px",fontSize:13,fontWeight:700,color:"#fff",boxShadow:"0 8px 32px rgba(0,0,0,0.5)",whiteSpace:"nowrap",maxWidth:"90vw",textAlign:"center"}}>
+        {toastMsg}
+      </div>}
 
       {/* Profile Modal */}
       {showProfile&&editProfile&&(function(){
