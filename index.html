@@ -20,7 +20,7 @@
 <script type="module">
   import{initializeApp}from"https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
   import{getAuth,GoogleAuthProvider,signInWithCredential,onAuthStateChanged,signOut,RecaptchaVerifier,signInWithPhoneNumber}from"https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
-  import{getFirestore,doc,setDoc,getDoc,serverTimestamp,collection,getDocs,deleteDoc,writeBatch}from"https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+  import{getFirestore,doc,setDoc,getDoc,serverTimestamp,collection,getDocs,deleteDoc,writeBatch,addDoc,updateDoc,onSnapshot,query,where,orderBy,arrayUnion,arrayRemove,increment}from"https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
   const firebaseConfig={
     apiKey:"AIzaSyBlIlE7uJak4x6Bu30U0EkUnU3TL-a-GqM",
     authDomain:"som-fit-46537.firebaseapp.com",
@@ -32,7 +32,7 @@
   const app=initializeApp(firebaseConfig);
   const auth=getAuth(app);
   const db=getFirestore(app);
-  window.__FB={auth,db,GoogleAuthProvider,signInWithCredential,signOut,doc,setDoc,getDoc,serverTimestamp,onAuthStateChanged,collection,getDocs,deleteDoc,writeBatch,RecaptchaVerifier,signInWithPhoneNumber};
+  window.__FB={auth,db,GoogleAuthProvider,signInWithCredential,signOut,doc,setDoc,getDoc,serverTimestamp,onAuthStateChanged,collection,getDocs,deleteDoc,writeBatch,addDoc,updateDoc,onSnapshot,query,where,orderBy,arrayUnion,arrayRemove,increment,RecaptchaVerifier,signInWithPhoneNumber};
 </script>
 <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
 <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
@@ -811,6 +811,11 @@ function MainApp({initProfile}){
   const [showPlans,setShowPlans]=useState(false);
   const [showDoctorReport,setShowDoctorReport]=useState(false);
   const [friendSearch,setFriendSearch]=useState("");
+  // ── Firestore friends state ──
+  const [fsUsers,setFsUsers]=useState([]);        // search results
+  const [fsFriends,setFsFriends]=useState([]);    // my friends list from Firestore
+  const [fsSearching,setFsSearching]=useState(false);
+  const [fsChallenges,setFsChallenges]=useState([]); // cloud challenges
   // ── Real GPS state ──
   const [gpsCoords,setGpsCoords]=useState([]); // [{lat,lng,ts}]
   const [gpsDist,setGpsDist]=useState(0);      // metres
@@ -1034,6 +1039,120 @@ function MainApp({initProfile}){
     });
     return function(){unsubscribe();};
   },[]);
+
+  // ── Firestore: save user profile so others can find/add them ──
+  useEffect(function(){
+    if(!window.__FB||!profile)return;
+    var uid=window.__sfUid;
+    if(!uid)return;
+    var fb=window.__FB;
+    var avgSteps=Math.round((steps||0));
+    fb.setDoc(fb.doc(fb.db,"users",uid),{
+      uid:uid,
+      name:profile.name||"User",
+      email:profile.email||"",
+      photoURL:profile.photoURL||"",
+      avgSteps:avgSteps,
+      updatedAt:fb.serverTimestamp()
+    },{merge:true}).catch(function(){});
+  },[profile,steps]);
+
+  // ── Firestore: search users by name ──
+  function fsSearchUsers(term){
+    if(!window.__FB||!term||term.length<2){setFsUsers([]);return;}
+    setFsSearching(true);
+    var fb=window.__FB;
+    var myUid=window.__sfUid;
+    // Get all users and filter client-side (simple, works for small user base)
+    fb.getDocs(fb.collection(fb.db,"users")).then(function(snap){
+      var results=[];
+      snap.forEach(function(d){
+        var u=d.data();
+        if(u.uid===myUid)return; // skip self
+        var n=(u.name||"").toLowerCase();
+        var e=(u.email||"").toLowerCase();
+        var t=term.toLowerCase();
+        if(n.includes(t)||e.includes(t))results.push(u);
+      });
+      setFsUsers(results);
+      setFsSearching(false);
+    }).catch(function(){setFsSearching(false);});
+  }
+
+  // ── Firestore: add friend ──
+  function fsAddFriend(friendUid,friendName){
+    if(!window.__FB)return;
+    var fb=window.__FB;
+    var myUid=window.__sfUid;
+    if(!myUid){setToast("Sign in to add friends");return;}
+    // Store friendship in both users' friends subcollection
+    fb.setDoc(fb.doc(fb.db,"users",myUid,"friends",friendUid),{uid:friendUid,name:friendName,addedAt:fb.serverTimestamp()}).catch(function(){});
+    fb.setDoc(fb.doc(fb.db,"users",friendUid,"friends",myUid),{uid:myUid,name:profile.name||"User",addedAt:fb.serverTimestamp()}).catch(function(){});
+    setToast("✅ Friend request sent to "+friendName+"!");
+  }
+
+  // ── Firestore: load my friends ──
+  useEffect(function(){
+    if(!window.__FB)return;
+    var myUid=window.__sfUid;
+    if(!myUid)return;
+    var fb=window.__FB;
+    var unsub=fb.onSnapshot(fb.collection(fb.db,"users",myUid,"friends"),function(snap){
+      var list=[];
+      snap.forEach(function(d){list.push(d.data());});
+      setFsFriends(list);
+    });
+    return function(){unsub();};
+  },[]);
+
+  // ── Firestore: create challenge in cloud ──
+  function fsCreateChallenge(challengeData){
+    if(!window.__FB){return Promise.resolve(null);}
+    var fb=window.__FB;
+    var myUid=window.__sfUid;
+    if(!myUid){setToast("Sign in to create challenges");return Promise.resolve(null);}
+    var data=Object.assign({},challengeData,{
+      creatorUid:myUid,
+      creatorName:profile.name||"User",
+      participants:[{uid:myUid,name:profile.name||"User",steps:steps||0}],
+      createdAt:fb.serverTimestamp(),
+      invitedUids:[]
+    });
+    return fb.addDoc(fb.collection(fb.db,"challenges"),data).then(function(ref){
+      setToast("🏆 Challenge created!");
+      return ref.id;
+    }).catch(function(e){setToast("Error creating challenge");return null;});
+  }
+
+  // ── Firestore: listen to challenges I'm part of ──
+  useEffect(function(){
+    if(!window.__FB)return;
+    var myUid=window.__sfUid;
+    if(!myUid)return;
+    var fb=window.__FB;
+    // Listen to challenges where I'm a participant
+    var unsub=fb.onSnapshot(fb.collection(fb.db,"challenges"),function(snap){
+      var list=[];
+      snap.forEach(function(d){
+        var ch=Object.assign({id:d.id},d.data());
+        // include if I created it or am a participant
+        var isParticipant=(ch.participants||[]).some(function(p){return p.uid===myUid;});
+        var isCreator=ch.creatorUid===myUid;
+        if(isParticipant||isCreator)list.push(ch);
+      });
+      setFsChallenges(list);
+    });
+    return function(){unsub();};
+  },[]);
+
+  // ── Firestore: invite friend to challenge ──
+  function fsInviteFriend(challengeId,friendUid,friendName){
+    if(!window.__FB)return;
+    var fb=window.__FB;
+    fb.updateDoc(fb.doc(fb.db,"challenges",challengeId),{
+      invitedUids:fb.arrayUnion(friendUid)
+    }).then(function(){setToast("✅ Invited "+friendName+" to challenge!");}).catch(function(){setToast("Error inviting friend");});
+  }
 
   // ── New: modal states ──
   const [showAddSteps,setShowAddSteps]=useState(false);
@@ -3447,64 +3566,98 @@ function MainApp({initProfile}){
             </div>;
           })()}
 
-          {/* Add People to Challenge sheet */}
-          {inviteSheet!==null&&myChallenges[inviteSheet]&&(function(){
-            var ch=myChallenges[inviteSheet];
-            var already=ch.invitedNames||[];
-            return <div onClick={function(){setInviteSheet(null);setFriendSearch("");}} style={{position:"fixed",inset:0,zIndex:300,background:"rgba(0,0,0,0.75)",backdropFilter:"blur(8px)",display:"flex",alignItems:"flex-end",justifyContent:"center"}}>
-              <div onClick={function(e){e.stopPropagation();}} style={{width:"100%",maxWidth:420,borderRadius:"28px 28px 0 0",background:C.card,border:"1px solid "+C.border,padding:"20px 18px 40px"}}>
-                <div style={{width:40,height:4,borderRadius:2,background:"rgba(255,255,255,0.15)",margin:"0 auto 18px"}}/>
-                <div style={{fontSize:15,fontWeight:900,color:C.text,marginBottom:2}}>Add People</div>
-                <div style={{fontSize:11,color:C.muted,marginBottom:14}}>🏆 {ch.title} · {ch.goal}</div>
-                <input
-                  value={friendSearch}
-                  onChange={function(e){setFriendSearch(e.target.value);}}
-                  placeholder="Search contacts by name…"
-                  className="white-placeholder"
-                  style={{width:"100%",padding:"11px 14px",borderRadius:14,border:"1px solid "+C.border,background:"rgba(255,255,255,0.07)",color:C.text,fontSize:13,outline:"none",boxSizing:"border-box",marginBottom:14}}
-                />
-                <div style={{display:"flex",flexDirection:"column",gap:8,maxHeight:240,overflowY:"auto"}}>
-                  {FRIENDS.filter(function(f){
-                    return !f.isMe && (friendSearch===""||f.name.toLowerCase().includes(friendSearch.toLowerCase()));
-                  }).map(function(f,fi){
-                    var added=already.includes(f.name);
-                    return <div key={fi} style={{display:"flex",alignItems:"center",gap:12,padding:"10px 12px",borderRadius:14,background:"rgba(255,255,255,0.05)",border:"1px solid "+(added?C.green+"44":C.border)}}>
-                      <div style={{fontSize:26}}>{f.avatar}</div>
-                      <div style={{flex:1}}>
-                        <div style={{fontSize:13,fontWeight:700,color:C.text}}>{f.name}</div>
-                        <div style={{fontSize:11,color:C.muted}}>{f.steps.toLocaleString()} steps today</div>
+          {/* Add Friends / Invite to Challenge sheet — Firestore powered */}
+          {inviteSheet!==null&&(function(){
+            var ch=myChallenges[inviteSheet]||{title:"Challenge",goal:"",days:"7",id:null};
+            var alreadyNames=ch.invitedNames||[];
+            // Suggested = my Firestore friends; search = Firestore user search
+            var suggested=fsFriends.length>0?fsFriends:[];
+            var showSearch=friendSearch.length>=2;
+            var listToShow=showSearch?fsUsers:suggested;
+            return <div onClick={function(){setInviteSheet(null);setFriendSearch("");setFsUsers([]);}} style={{position:"fixed",inset:0,zIndex:300,background:"rgba(0,0,0,0.78)",backdropFilter:"blur(10px)",display:"flex",alignItems:"flex-end",justifyContent:"center"}}>
+              <div onClick={function(e){e.stopPropagation();}} style={{width:"100%",maxWidth:430,borderRadius:"28px 28px 0 0",background:"linear-gradient(180deg,#1a2a3a 0%,#111318 100%)",border:"1px solid rgba(255,255,255,0.12)",padding:"0 0 36px",boxShadow:"0 -16px 60px rgba(0,0,0,0.6)"}}>
+                {/* Handle */}
+                <div style={{width:40,height:4,borderRadius:2,background:"rgba(255,255,255,0.18)",margin:"12px auto 0"}}/>
+                {/* Header */}
+                <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"16px 20px 0"}}>
+                  <div>
+                    <div style={{fontSize:17,fontWeight:900,color:"#fff"}}>Add Friends</div>
+                    <div style={{fontSize:11,color:"rgba(255,255,255,0.4)",marginTop:2}}>🏆 {ch.title}</div>
+                  </div>
+                  <button onClick={function(){setInviteSheet(null);setFriendSearch("");setFsUsers([]);}} style={{width:32,height:32,borderRadius:50,border:"none",background:"rgba(255,255,255,0.1)",color:"rgba(255,255,255,0.6)",fontSize:14,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>✕</button>
+                </div>
+                {/* Search box */}
+                <div style={{padding:"14px 18px 0"}}>
+                  <div style={{position:"relative"}}>
+                    <span style={{position:"absolute",left:14,top:"50%",transform:"translateY(-50%)",fontSize:14,opacity:0.4}}>🔍</span>
+                    <input
+                      value={friendSearch}
+                      onChange={function(e){
+                        setFriendSearch(e.target.value);
+                        fsSearchUsers(e.target.value);
+                      }}
+                      placeholder="Search by name or username..."
+                      className="white-placeholder"
+                      style={{width:"100%",padding:"12px 14px 12px 38px",borderRadius:16,border:"1px solid rgba(255,255,255,0.12)",background:"rgba(255,255,255,0.08)",color:"#fff",fontSize:13,outline:"none",boxSizing:"border-box"}}
+                    />
+                  </div>
+                </div>
+                {/* Section label */}
+                <div style={{padding:"14px 20px 8px",fontSize:11,fontWeight:800,color:"rgba(255,255,255,0.4)",letterSpacing:1}}>
+                  {showSearch?"SEARCH RESULTS":"SUGGESTED"}
+                </div>
+                {/* List */}
+                <div style={{padding:"0 18px",display:"flex",flexDirection:"column",gap:8,maxHeight:260,overflowY:"auto"}}>
+                  {fsSearching&&<div style={{textAlign:"center",padding:20,color:"rgba(255,255,255,0.4)",fontSize:12}}>Searching...</div>}
+                  {!fsSearching&&listToShow.map(function(u,i){
+                    var added=alreadyNames.includes(u.name);
+                    var initials=(u.name||"?").split(" ").map(function(w){return w[0];}).join("").slice(0,2).toUpperCase();
+                    return <div key={u.uid||i} style={{display:"flex",alignItems:"center",gap:12,padding:"10px 14px",borderRadius:16,background:"rgba(255,255,255,0.06)",border:"1px solid "+(added?"rgba(76,175,80,0.4)":"rgba(255,255,255,0.08)")}}>
+                      {u.photoURL
+                        ?<img src={u.photoURL} style={{width:42,height:42,borderRadius:50,objectFit:"cover",flexShrink:0}} alt=""/>
+                        :<div style={{width:42,height:42,borderRadius:50,background:"linear-gradient(135deg,#1565C0,#0D47A1)",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,fontSize:14,fontWeight:800,color:"#fff"}}>{initials}</div>
+                      }
+                      <div style={{flex:1,minWidth:0}}>
+                        <div style={{fontSize:13,fontWeight:800,color:"#fff",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{u.name}</div>
+                        <div style={{fontSize:11,color:"rgba(255,255,255,0.4)"}}>{u.email?("@"+u.email.split("@")[0]):"Som Fit user"} · {(u.avgSteps||0).toLocaleString()} steps avg</div>
                       </div>
                       {added
-                        ? <span style={{fontSize:11,color:C.green,fontWeight:800}}>✓ Added</span>
-                        : <button onClick={function(){
-                            setMyChallenges(function(prev){
-                              return prev.map(function(c,ci){
-                                if(ci!==inviteSheet) return c;
-                                var names=(c.invitedNames||[]).concat([f.name]);
-                                return Object.assign({},c,{participants:(c.participants||1)+1,invitedNames:names});
-                              });
+                        ?<span style={{fontSize:11,color:"#4CAF50",fontWeight:800,flexShrink:0}}>✓ Added</span>
+                        :<button onClick={function(){
+                          // Add to local challenge
+                          setMyChallenges(function(prev){
+                            return prev.map(function(c,ci){
+                              if(ci!==inviteSheet)return c;
+                              var names=(c.invitedNames||[]).concat([u.name]);
+                              return Object.assign({},c,{participants:(c.participants||1)+1,invitedNames:names});
                             });
-                          }} style={{padding:"6px 14px",borderRadius:10,border:"none",background:C.green,color:"#000",fontSize:11,fontWeight:800,cursor:"pointer"}}>Add</button>
+                          });
+                          // Invite via Firestore if challenge has cloud ID
+                          if(ch.id){fsInviteFriend(ch.id,u.uid,u.name);}
+                          else{fsAddFriend(u.uid,u.name);}
+                        }} style={{padding:"8px 18px",borderRadius:12,border:"none",background:"linear-gradient(135deg,#4CAF50,#2E7D32)",color:"#fff",fontSize:12,fontWeight:800,cursor:"pointer",flexShrink:0,boxShadow:"0 2px 8px rgba(76,175,80,0.4)"}}>Add</button>
                       }
                     </div>;
                   })}
-                  {FRIENDS.filter(function(f){return !f.isMe&&(friendSearch===""||f.name.toLowerCase().includes(friendSearch.toLowerCase()));}).length===0&&(
-                    <div style={{textAlign:"center",padding:"20px 0",color:C.muted,fontSize:12}}>No contacts found</div>
+                  {!fsSearching&&listToShow.length===0&&(
+                    <div style={{textAlign:"center",padding:"24px 0"}}>
+                      <div style={{fontSize:28,marginBottom:8}}>👥</div>
+                      <div style={{fontSize:13,color:"rgba(255,255,255,0.5)",fontWeight:600}}>{showSearch?"No users found":"No friends yet"}</div>
+                      <div style={{fontSize:11,color:"rgba(255,255,255,0.3)",marginTop:4}}>{showSearch?"Try a different name":"Search above to find Som Fit users"}</div>
+                    </div>
                   )}
                 </div>
-                {/* Share invite link */}
-                <div style={{marginTop:16,padding:"12px 14px",borderRadius:14,background:"rgba(255,255,255,0.06)",border:"1px solid "+C.border}}>
-                  <div style={{fontSize:11,color:C.muted,marginBottom:6}}>Or share invite link</div>
+                {/* Copy Invite Link button */}
+                <div style={{padding:"14px 18px 0"}}>
                   <button onClick={function(){
-                    var url=window.location.origin+window.location.pathname+"?join="+encodeURIComponent(ch.title)+"&goal="+encodeURIComponent(ch.goal)+"&days="+ch.days;
-                    var text="Join my Som Fit challenge!\n🏆 "+ch.title+"\n🎯 "+ch.goal+" in "+ch.days+" days\n\n"+url;
-                    if(navigator.share){navigator.share({title:"Join my Som Fit Challenge",text:text,url:url}).catch(function(){});}
-                    else{navigator.clipboard.writeText(text).then(function(){alert("Invite link copied!");}).catch(function(){prompt("Copy this link:",url);});}
-                  }} style={{width:"100%",padding:"10px",borderRadius:12,border:"none",background:"linear-gradient(135deg,"+C.green+","+C.cyan+")",color:"#000",fontSize:12,fontWeight:800,cursor:"pointer"}}>
-                    🔗 Share Invite Link
+                    var url=window.location.origin+window.location.pathname+"?join="+encodeURIComponent(ch.title)+"&goal="+encodeURIComponent(ch.goal||"")+"&days="+(ch.days||7);
+                    var text="🏆 Join my Som Fit challenge!\n"+ch.title+"\n\n"+url;
+                    if(navigator.share){navigator.share({title:"Join "+ch.title,text:text,url:url}).catch(function(){});}
+                    else{navigator.clipboard.writeText(text).then(function(){setToast("✅ Invite link copied!");}).catch(function(){});}
+                  }} style={{width:"100%",padding:"13px",borderRadius:16,border:"1px solid rgba(255,255,255,0.12)",background:"rgba(255,255,255,0.07)",color:"#fff",fontSize:13,fontWeight:800,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:8}}>
+                    🔗 Copy Invite Link
                   </button>
                 </div>
-                <button onClick={function(){setInviteSheet(null);setFriendSearch("");}} style={{marginTop:12,width:"100%",padding:"11px",borderRadius:14,border:"1px solid "+C.border,background:"transparent",color:C.muted,fontSize:13,fontWeight:700,cursor:"pointer"}}>Done</button>
               </div>
             </div>;
           })()}
