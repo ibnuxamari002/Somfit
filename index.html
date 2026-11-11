@@ -818,6 +818,7 @@ function MainApp({initProfile}){
   const [fsChallenges,setFsChallenges]=useState([]); // cloud challenges
   const [viewPlayer,setViewPlayer]=useState(null);   // leaderboard row being viewed
   const [viewPlayerInfo,setViewPlayerInfo]=useState(null); // their cloud profile
+  const [zoomPhoto,setZoomPhoto]=useState(null); // fullscreen photo zoom URL
   useEffect(function(){
     setViewPlayerInfo(null);
     if(!viewPlayer||!viewPlayer.uid||!window.__FB)return;
@@ -1519,7 +1520,7 @@ function MainApp({initProfile}){
       <div style={{padding:"16px 20px 12px",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
         <div onClick={function(){setEditProfile(Object.assign({},profile));setShowProfile(true);}} style={{cursor:"pointer",display:"flex",alignItems:"center",gap:10}}>
           {profile.photoURL
-            ?<img src={profile.photoURL} alt="" style={{width:40,height:40,borderRadius:14,objectFit:"cover",border:"2px solid "+C.purple+"55",flexShrink:0}}/>
+            ?<img src={profile.photoURL} alt="" onClick={function(e){e.stopPropagation();setZoomPhoto(profile.photoURL);}} style={{width:40,height:40,borderRadius:14,objectFit:"cover",border:"2px solid "+C.purple+"55",flexShrink:0,cursor:"zoom-in"}}/>
             :<div style={{width:40,height:40,borderRadius:14,background:C.purple+"22",border:"2px solid "+C.purple+"55",display:"flex",alignItems:"center",justifyContent:"center",fontSize:22,flexShrink:0}}>{profile.avatar}</div>
           }
           <div>
@@ -3626,7 +3627,7 @@ function MainApp({initProfile}){
                 <div style={{width:40,height:4,borderRadius:2,background:"rgba(255,255,255,0.2)",margin:"12px auto 18px"}}/>
                 <div style={{display:"flex",flexDirection:"column",alignItems:"center",textAlign:"center"}}>
                   {photo
-                    ?<img src={photo} alt="" style={{width:78,height:78,borderRadius:50,objectFit:"cover",border:"3px solid "+p.color,boxShadow:"0 0 24px "+p.color+"55"}}/>
+                    ?<img src={photo} alt="" onClick={function(e){e.stopPropagation();setZoomPhoto(photo);}} style={{width:78,height:78,borderRadius:50,objectFit:"cover",border:"3px solid "+p.color,boxShadow:"0 0 24px "+p.color+"55",cursor:"zoom-in"}}/>
                     :<div style={{width:78,height:78,borderRadius:50,background:"linear-gradient(135deg,"+p.color+","+p.color+"88)",border:"3px solid "+p.color,display:"flex",alignItems:"center",justifyContent:"center",fontSize:26,fontWeight:900,color:"#fff",boxShadow:"0 0 24px "+p.color+"55"}}>{initials}</div>
                   }
                   <div style={{fontSize:18,fontWeight:900,color:"#fff",marginTop:12}}>{p.name}{p.isMe?" (You)":""}</div>
@@ -4228,7 +4229,7 @@ function MainApp({initProfile}){
             </div>
             <div onClick={function(){setEditProfile(Object.assign({},profile));setShowProfile(true);}} style={{display:"flex",alignItems:"center",gap:14,padding:"12px",borderRadius:16,background:"#1565C0",border:"1px solid "+C.purple+"44",cursor:"pointer",marginBottom:14}}>
               {profile.photoURL
-                ?<img src={profile.photoURL} alt="" style={{width:48,height:48,borderRadius:16,objectFit:"cover",border:"2px solid "+C.purple+"44",flexShrink:0}}/>
+                ?<img src={profile.photoURL} alt="" onClick={function(e){e.stopPropagation();setZoomPhoto(profile.photoURL);}} style={{width:48,height:48,borderRadius:16,objectFit:"cover",border:"2px solid "+C.purple+"44",flexShrink:0,cursor:"zoom-in"}}/>
                 :<div style={{width:48,height:48,borderRadius:16,background:C.purple+"22",display:"flex",alignItems:"center",justifyContent:"center",fontSize:24,border:"2px solid "+C.purple+"44"}}>{profile.avatar}</div>
               }
               <div style={{flex:1}}>
@@ -4338,6 +4339,12 @@ function MainApp({initProfile}){
         </div>
       </div>
 
+      {/* Photo zoom overlay */}
+      {zoomPhoto&&<div onClick={function(){setZoomPhoto(null);}} style={{position:"fixed",inset:0,zIndex:9000,background:"rgba(0,0,0,0.92)",backdropFilter:"blur(16px)",display:"flex",alignItems:"center",justifyContent:"center",cursor:"zoom-out"}}>
+        <img src={zoomPhoto} alt="" style={{maxWidth:"92vw",maxHeight:"92vh",borderRadius:20,objectFit:"contain",boxShadow:"0 0 80px rgba(0,0,0,0.8)"}}/>
+        <div style={{position:"absolute",top:20,right:20,width:36,height:36,borderRadius:"50%",background:"rgba(255,255,255,0.15)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:18,cursor:"pointer"}}>✕</div>
+      </div>}
+
       {/* Toast notification */}
       {toastMsg&&<div style={{position:"fixed",bottom:90,left:"50%",transform:"translateX(-50%)",zIndex:9999,background:"rgba(20,20,30,0.95)",backdropFilter:"blur(12px)",border:"1px solid rgba(255,255,255,0.15)",borderRadius:16,padding:"12px 20px",fontSize:13,fontWeight:700,color:"#fff",boxShadow:"0 8px 32px rgba(0,0,0,0.5)",whiteSpace:"nowrap",maxWidth:"90vw",textAlign:"center"}}>
         {toastMsg}
@@ -4396,6 +4403,8 @@ function MainApp({initProfile}){
                     ?<img src={editProfile.photoURL} alt="" style={{width:88,height:88,borderRadius:"50%",objectFit:"cover",border:"3px solid "+C.green,boxShadow:"0 0 20px "+C.green+"55",display:"block"}}/>
                     :<div style={{width:88,height:88,borderRadius:"50%",background:"linear-gradient(135deg,#1565C0,#0D47A1)",border:"3px solid rgba(255,255,255,0.2)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:28,fontWeight:900,color:"#fff"}}>{epInitials||"👤"}</div>
                   }
+                  {/* Zoom button on top-left of photo when photo exists */}
+                  {editProfile.photoURL&&<div onClick={function(e){e.preventDefault();e.stopPropagation();setZoomPhoto(editProfile.photoURL);}} style={{position:"absolute",top:0,left:0,width:28,height:28,borderRadius:"50%",background:"rgba(0,0,0,0.6)",border:"2px solid #0F0F18",display:"flex",alignItems:"center",justifyContent:"center",fontSize:13,cursor:"zoom-in"}}>🔍</div>}
                   <div style={{position:"absolute",bottom:0,right:0,width:28,height:28,borderRadius:"50%",background:C.green,border:"2px solid #0F0F18",display:"flex",alignItems:"center",justifyContent:"center",fontSize:14}}>📷</div>
                 </label>
                 <input id="sf-photo-input" type="file" accept="image/*" onChange={onPhotoChange} style={{display:"none"}}/>
