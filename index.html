@@ -3146,9 +3146,32 @@ function MainApp({initProfile}){
           {/* CHALLENGE DETAIL MODAL — Samsung Health style */}
           {activeChallenge&&(function(){
             var ch=activeChallenge;
-            var me=ch.leaderboard.find(function(p){return p.isMe;})||{rank:4,steps:ch.mySteps,avatar:"🏃"};
-            var myRank=ch.leaderboard.findIndex(function(p){return p.isMe;})+1;
-            var top=ch.leaderboard[0];
+            var myName=profile.name||"Mohamed";
+            // Build leaderboard: start from cloud Firestore challenge if available,
+            // otherwise use local ch.leaderboard, then merge in invited friends
+            var fsMatch=fsChallenges.find(function(fc){return fc.id===ch.id||(fc.title===ch.title&&fc.creatorUid===window.__sfUid);});
+            var baseLeaderboard;
+            if(fsMatch&&fsMatch.participants&&fsMatch.participants.length>0){
+              // Use Firestore participants, sorted by steps desc
+              baseLeaderboard=fsMatch.participants.slice().sort(function(a,b){return (b.steps||0)-(a.steps||0);}).map(function(p,i){
+                var isMe=p.uid===window.__sfUid;
+                return {rank:i+1,name:isMe?myName:p.name,steps:p.steps||0,avatar:isMe?"🏃":"👤",isMe:isMe};
+              });
+            } else {
+              // Fallback: local leaderboard + invited names
+              baseLeaderboard=(ch.leaderboard||[]).slice();
+              // Append invited friends not already in leaderboard
+              (ch.invitedNames||[]).forEach(function(n){
+                if(!baseLeaderboard.find(function(p){return p.name===n;})){
+                  baseLeaderboard.push({rank:baseLeaderboard.length+1,name:n,steps:0,avatar:"👤",isMe:false});
+                }
+              });
+              // Sort by steps
+              baseLeaderboard=baseLeaderboard.sort(function(a,b){return (b.steps||0)-(a.steps||0);}).map(function(p,i){return Object.assign({},p,{rank:i+1});});
+            }
+            var me=baseLeaderboard.find(function(p){return p.isMe;})||{rank:baseLeaderboard.length+1,steps:ch.mySteps||0,avatar:"🏃",isMe:true,name:myName};
+            var myRank=me.rank||baseLeaderboard.findIndex(function(p){return p.isMe;})+1;
+            var top=baseLeaderboard[0]||me;
             var myPct=me.steps/(top.steps||1);
             var totalXP=1240;
             var levelXP=1500;
@@ -3173,7 +3196,7 @@ function MainApp({initProfile}){
                   <div style={{display:"flex",alignItems:"center",gap:14}}>
                     <div style={{width:60,height:60,borderRadius:50,background:ch.color+"33",border:"3px solid "+ch.color,display:"flex",alignItems:"center",justifyContent:"center",fontSize:28,flexShrink:0}}>🏃</div>
                     <div style={{flex:1}}>
-                      <div style={{fontSize:16,fontWeight:900,color:"#fff"}}>Mohamed</div>
+                      <div style={{fontSize:16,fontWeight:900,color:"#fff"}}>{myName}</div>
                       <div style={{fontSize:11,color:C.muted}}>Level 12 · Fitness Explorer</div>
                       <div style={{marginTop:6}}>
                         <div style={{display:"flex",justifyContent:"space-between",fontSize:9,color:C.muted,marginBottom:3}}>
@@ -3199,7 +3222,7 @@ function MainApp({initProfile}){
                       <div style={{fontSize:9,color:C.muted}}>DAYS LEFT</div>
                     </div>
                     <div style={{flex:1,textAlign:"center",background:"rgba(255,255,255,0.05)",borderRadius:12,padding:"10px 4px"}}>
-                      <div style={{fontSize:16,fontWeight:900,color:"#fff"}}>{ch.participants}</div>
+                      <div style={{fontSize:16,fontWeight:900,color:"#fff"}}>{baseLeaderboard.length||ch.participants}</div>
                       <div style={{fontSize:9,color:C.muted}}>FRIENDS</div>
                     </div>
                   </div>
@@ -3212,7 +3235,8 @@ function MainApp({initProfile}){
                 {/* Leaderboard full */}
                 <div style={{margin:"12px 16px 0",borderRadius:20,background:"#1A1D22",border:"1px solid rgba(255,255,255,0.08)",padding:"16px"}}>
                   <div style={{fontSize:11,fontWeight:800,color:C.muted,letterSpacing:1,marginBottom:12}}>LEADERBOARD</div>
-                  {ch.leaderboard.map(function(p,j){
+                  {baseLeaderboard.length===0&&<div style={{textAlign:"center",padding:"20px 0",color:C.muted,fontSize:12}}>No participants yet — invite friends!</div>}
+                  {baseLeaderboard.map(function(p,j){
                     var isMe=p.isMe;
                     var pct=p.steps/(top.steps||1)*100;
                     return <div key={j} style={{display:"flex",alignItems:"center",gap:10,padding:"10px 10px",marginBottom:5,borderRadius:16,background:isMe?"rgba(255,255,255,0.08)":"transparent",border:isMe?"1px solid "+ch.color+"44":"1px solid transparent"}}>
