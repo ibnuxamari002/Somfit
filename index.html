@@ -816,6 +816,17 @@ function MainApp({initProfile}){
   const [fsFriends,setFsFriends]=useState([]);    // my friends list from Firestore
   const [fsSearching,setFsSearching]=useState(false);
   const [fsChallenges,setFsChallenges]=useState([]); // cloud challenges
+  const [viewPlayer,setViewPlayer]=useState(null);   // leaderboard row being viewed
+  const [viewPlayerInfo,setViewPlayerInfo]=useState(null); // their cloud profile
+  useEffect(function(){
+    setViewPlayerInfo(null);
+    if(!viewPlayer||!viewPlayer.uid||!window.__FB)return;
+    var fb=window.__FB,cancelled=false;
+    fb.getDoc(fb.doc(fb.db,"users",viewPlayer.uid)).then(function(s){
+      if(!cancelled&&s.exists())setViewPlayerInfo(s.data());
+    }).catch(function(){});
+    return function(){cancelled=true;};
+  },[viewPlayer]);
   // ── Real GPS state ──
   const [gpsCoords,setGpsCoords]=useState([]); // [{lat,lng,ts}]
   const [gpsDist,setGpsDist]=useState(0);      // metres
@@ -3155,7 +3166,7 @@ function MainApp({initProfile}){
               // Use Firestore participants, sorted by steps desc
               baseLeaderboard=fsMatch.participants.slice().sort(function(a,b){return (b.steps||0)-(a.steps||0);}).map(function(p,i){
                 var isMe=p.uid===window.__sfUid;
-                return {rank:i+1,name:isMe?myName:p.name,steps:p.steps||0,avatar:isMe?"🏃":"👤",isMe:isMe};
+                return {rank:i+1,uid:p.uid,name:isMe?myName:p.name,steps:p.steps||0,avatar:isMe?"🏃":"👤",isMe:isMe};
               });
             } else {
               // Fallback: local leaderboard + invited names
@@ -3239,7 +3250,7 @@ function MainApp({initProfile}){
                   {baseLeaderboard.map(function(p,j){
                     var isMe=p.isMe;
                     var pct=p.steps/(top.steps||1)*100;
-                    return <div key={j} style={{display:"flex",alignItems:"center",gap:10,padding:"10px 10px",marginBottom:5,borderRadius:16,background:isMe?"rgba(255,255,255,0.08)":"transparent",border:isMe?"1px solid "+ch.color+"44":"1px solid transparent"}}>
+                    return <div key={j} onClick={function(){setViewPlayer({uid:p.uid||(isMe?window.__sfUid:null),name:isMe?myName:p.name,steps:p.steps||0,avatar:p.avatar,isMe:isMe,rank:j+1,total:baseLeaderboard.length,topSteps:top.steps||0,mySteps:me.steps||0,color:ch.color||"#4CAF50",unit:ch.unit||"steps",title:ch.title});}} style={{display:"flex",alignItems:"center",gap:10,padding:"10px 10px",marginBottom:5,borderRadius:16,cursor:"pointer",background:isMe?"rgba(255,255,255,0.08)":"transparent",border:isMe?"1px solid "+ch.color+"44":"1px solid transparent"}}>
                       <div style={{fontSize:18,width:26,textAlign:"center",fontWeight:900,color:j===0?C.amber:j===1?"#C0C0C0":j===2?"#CD7F32":C.muted}}>{j===0?"🥇":j===1?"🥈":j===2?"🥉":j+1}</div>
                       <div style={{width:36,height:36,borderRadius:50,background:isMe?ch.color+"33":"rgba(255,255,255,0.1)",border:isMe?"2px solid "+ch.color:"none",display:"flex",alignItems:"center",justifyContent:"center",fontSize:19,flexShrink:0}}>{p.avatar}</div>
                       <div style={{flex:1,minWidth:0}}>
@@ -3586,6 +3597,50 @@ function MainApp({initProfile}){
                     </button>
                   </div>
                 </div>}
+              </div>
+            </div>;
+          })()}
+
+          {/* Participant profile sheet — opens when a leaderboard row is tapped */}
+          {viewPlayer&&(function(){
+            var p=viewPlayer,info=viewPlayerInfo||{};
+            var photo=info.photoURL||(p.isMe&&profile.photoURL)||"";
+            var initials=(p.name||"?").split(" ").map(function(w){return w[0];}).join("").slice(0,2).toUpperCase();
+            var gapTop=Math.max(0,(p.topSteps||0)-(p.steps||0));
+            var diffMe=(p.steps||0)-(p.mySteps||0);
+            var tiles=[
+              {val:(p.steps||0).toLocaleString(),label:p.unit.toUpperCase()},
+              {val:"#"+p.rank,label:"OF "+p.total},
+              {val:p.rank===1?"Leader":gapTop.toLocaleString(),label:p.rank===1?"IN FRONT":"BEHIND 1ST"},
+            ];
+            return <div onClick={function(){setViewPlayer(null);}} style={{position:"fixed",inset:0,zIndex:500,background:"rgba(0,0,0,0.7)",backdropFilter:"blur(8px)",display:"flex",alignItems:"flex-end",justifyContent:"center"}}>
+              <div onClick={function(e){e.stopPropagation();}} style={{width:"100%",maxWidth:430,borderRadius:"28px 28px 0 0",background:"linear-gradient(180deg,"+p.color+"30 0%,#14171c 38%,#111318 100%)",border:"1px solid rgba(255,255,255,0.12)",padding:"0 18px 32px",boxShadow:"0 -16px 60px rgba(0,0,0,0.6)"}}>
+                <div style={{width:40,height:4,borderRadius:2,background:"rgba(255,255,255,0.2)",margin:"12px auto 18px"}}/>
+                <div style={{display:"flex",flexDirection:"column",alignItems:"center",textAlign:"center"}}>
+                  {photo
+                    ?<img src={photo} alt="" style={{width:78,height:78,borderRadius:50,objectFit:"cover",border:"3px solid "+p.color,boxShadow:"0 0 24px "+p.color+"55"}}/>
+                    :<div style={{width:78,height:78,borderRadius:50,background:"linear-gradient(135deg,"+p.color+","+p.color+"88)",border:"3px solid "+p.color,display:"flex",alignItems:"center",justifyContent:"center",fontSize:26,fontWeight:900,color:"#fff",boxShadow:"0 0 24px "+p.color+"55"}}>{initials}</div>
+                  }
+                  <div style={{fontSize:18,fontWeight:900,color:"#fff",marginTop:12}}>{p.name}{p.isMe?" (You)":""}</div>
+                  <div style={{fontSize:11,color:"rgba(255,255,255,0.5)",marginTop:3}}>{info.email?"@"+info.email.split("@")[0]+" · ":""}{p.title}</div>
+                </div>
+                <div style={{display:"flex",gap:8,marginTop:18}}>
+                  {tiles.map(function(t,ti){
+                    return <div key={ti} style={{flex:1,textAlign:"center",background:"rgba(255,255,255,0.06)",border:"1px solid rgba(255,255,255,0.08)",borderRadius:14,padding:"12px 4px"}}>
+                      <div style={{fontSize:17,fontWeight:900,color:ti===0?p.color:"#fff"}}>{t.val}</div>
+                      <div style={{fontSize:9,color:"rgba(255,255,255,0.45)",fontWeight:700,letterSpacing:0.5,marginTop:2}}>{t.label}</div>
+                    </div>;
+                  })}
+                </div>
+                {typeof info.avgSteps==="number"&&<div style={{marginTop:10,display:"flex",justifyContent:"space-between",alignItems:"center",background:"rgba(255,255,255,0.05)",borderRadius:14,padding:"12px 14px"}}>
+                  <span style={{fontSize:12,color:"rgba(255,255,255,0.6)",fontWeight:600}}>Steps today</span>
+                  <span style={{fontSize:14,fontWeight:900,color:"#fff"}}>{info.avgSteps.toLocaleString()}</span>
+                </div>}
+                {!p.isMe&&<div style={{marginTop:10,padding:"12px 14px",borderRadius:14,background:p.color+"18",border:"1px solid "+p.color+"33",fontSize:12,fontWeight:700,color:p.color,textAlign:"center"}}>
+                  {diffMe===0?"You're level with "+p.name.split(" ")[0]+" right now":diffMe>0?p.name.split(" ")[0]+" is "+diffMe.toLocaleString()+" "+p.unit+" ahead of you":"You're "+Math.abs(diffMe).toLocaleString()+" "+p.unit+" ahead of "+p.name.split(" ")[0]}
+                </div>}
+                {!p.uid&&!p.isMe&&<div style={{marginTop:10,fontSize:11,color:"rgba(255,255,255,0.4)",textAlign:"center"}}>Invited — hasn't joined the challenge yet</div>}
+                <button onClick={function(){setViewPlayer(null);}} style={{marginTop:16,width:"100%",padding:"13px",borderRadius:16,border:"1px solid rgba(255,255,255,0.12)",background:"rgba(255,255,255,0.07)",color:"#fff",fontSize:13,fontWeight:800,cursor:"pointer"}}>Close</button>
               </div>
             </div>;
           })()}
