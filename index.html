@@ -1518,7 +1518,10 @@ function MainApp({initProfile}){
       {/* Header */}
       <div style={{padding:"16px 20px 12px",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
         <div onClick={function(){setEditProfile(Object.assign({},profile));setShowProfile(true);}} style={{cursor:"pointer",display:"flex",alignItems:"center",gap:10}}>
-          <div style={{width:40,height:40,borderRadius:14,background:C.purple+"22",border:"2px solid "+C.purple+"55",display:"flex",alignItems:"center",justifyContent:"center",fontSize:22,flexShrink:0}}>{profile.avatar}</div>
+          {profile.photoURL
+            ?<img src={profile.photoURL} alt="" style={{width:40,height:40,borderRadius:14,objectFit:"cover",border:"2px solid "+C.purple+"55",flexShrink:0}}/>
+            :<div style={{width:40,height:40,borderRadius:14,background:C.purple+"22",border:"2px solid "+C.purple+"55",display:"flex",alignItems:"center",justifyContent:"center",fontSize:22,flexShrink:0}}>{profile.avatar}</div>
+          }
           <div>
             <div style={{fontSize:12,color:C.muted}}>Good {(new Date().getHours()<12?"morning":new Date().getHours()<17?"afternoon":"evening")} 👋</div>
             <div style={{fontSize:18,fontWeight:900,background:G.hero,WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent",lineHeight:1.2}}>{profile.name}</div>
@@ -3166,7 +3169,7 @@ function MainApp({initProfile}){
               // Use Firestore participants, sorted by steps desc
               baseLeaderboard=fsMatch.participants.slice().sort(function(a,b){return (b.steps||0)-(a.steps||0);}).map(function(p,i){
                 var isMe=p.uid===window.__sfUid;
-                return {rank:i+1,uid:p.uid,name:isMe?myName:p.name,steps:p.steps||0,avatar:isMe?"🏃":"👤",isMe:isMe};
+                return {rank:i+1,uid:p.uid,name:isMe?myName:p.name,steps:p.steps||0,avatar:isMe?"🏃":"👤",photoURL:isMe?(profile.photoURL||""):(p.photoURL||""),isMe:isMe};
               });
             } else {
               // Fallback: local leaderboard + invited names
@@ -3250,9 +3253,14 @@ function MainApp({initProfile}){
                   {baseLeaderboard.map(function(p,j){
                     var isMe=p.isMe;
                     var pct=p.steps/(top.steps||1)*100;
-                    return <div key={j} onClick={function(){setViewPlayer({uid:p.uid||(isMe?window.__sfUid:null),name:isMe?myName:p.name,steps:p.steps||0,avatar:p.avatar,isMe:isMe,rank:j+1,total:baseLeaderboard.length,topSteps:top.steps||0,mySteps:me.steps||0,color:ch.color||"#4CAF50",unit:ch.unit||"steps",title:ch.title});}} style={{display:"flex",alignItems:"center",gap:10,padding:"10px 10px",marginBottom:5,borderRadius:16,cursor:"pointer",background:isMe?"rgba(255,255,255,0.08)":"transparent",border:isMe?"1px solid "+ch.color+"44":"1px solid transparent"}}>
+                    var rowPhoto=isMe?(profile.photoURL||""):(p.photoURL||"");
+                    var rowInitials=(isMe?myName:p.name||"?").split(" ").map(function(w){return w[0];}).join("").slice(0,2).toUpperCase();
+                    return <div key={j} onClick={function(){setViewPlayer({uid:p.uid||(isMe?window.__sfUid:null),name:isMe?myName:p.name,steps:p.steps||0,avatar:p.avatar,photoURL:rowPhoto,isMe:isMe,rank:j+1,total:baseLeaderboard.length,topSteps:top.steps||0,mySteps:me.steps||0,color:ch.color||"#4CAF50",unit:ch.unit||"steps",title:ch.title});}} style={{display:"flex",alignItems:"center",gap:10,padding:"10px 10px",marginBottom:5,borderRadius:16,cursor:"pointer",background:isMe?"rgba(255,255,255,0.08)":"transparent",border:isMe?"1px solid "+ch.color+"44":"1px solid transparent"}}>
                       <div style={{fontSize:18,width:26,textAlign:"center",fontWeight:900,color:j===0?C.amber:j===1?"#C0C0C0":j===2?"#CD7F32":C.muted}}>{j===0?"🥇":j===1?"🥈":j===2?"🥉":j+1}</div>
-                      <div style={{width:36,height:36,borderRadius:50,background:isMe?ch.color+"33":"rgba(255,255,255,0.1)",border:isMe?"2px solid "+ch.color:"none",display:"flex",alignItems:"center",justifyContent:"center",fontSize:19,flexShrink:0}}>{p.avatar}</div>
+                      {rowPhoto
+                        ?<img src={rowPhoto} alt="" style={{width:36,height:36,borderRadius:50,objectFit:"cover",border:isMe?"2px solid "+ch.color:"none",flexShrink:0}}/>
+                        :<div style={{width:36,height:36,borderRadius:50,background:isMe?ch.color+"33":"rgba(255,255,255,0.1)",border:isMe?"2px solid "+ch.color:"none",display:"flex",alignItems:"center",justifyContent:"center",fontSize:isMe?19:11,fontWeight:800,color:"#fff",flexShrink:0}}>{isMe?p.avatar:rowInitials}</div>
+                      }
                       <div style={{flex:1,minWidth:0}}>
                         <div style={{fontSize:12,fontWeight:isMe?900:600,color:isMe?"#fff":C.text,marginBottom:4}}>{isMe?"You (Mohamed)":p.name}</div>
                         <div style={{background:"rgba(255,255,255,0.08)",borderRadius:4,height:5,overflow:"hidden"}}>
@@ -3604,7 +3612,7 @@ function MainApp({initProfile}){
           {/* Participant profile sheet — opens when a leaderboard row is tapped */}
           {viewPlayer&&(function(){
             var p=viewPlayer,info=viewPlayerInfo||{};
-            var photo=info.photoURL||(p.isMe&&profile.photoURL)||"";
+            var photo=p.photoURL||info.photoURL||(p.isMe&&profile.photoURL)||"";
             var initials=(p.name||"?").split(" ").map(function(w){return w[0];}).join("").slice(0,2).toUpperCase();
             var gapTop=Math.max(0,(p.topSteps||0)-(p.steps||0));
             var diffMe=(p.steps||0)-(p.mySteps||0);
@@ -4219,7 +4227,10 @@ function MainApp({initProfile}){
               </div>
             </div>
             <div onClick={function(){setEditProfile(Object.assign({},profile));setShowProfile(true);}} style={{display:"flex",alignItems:"center",gap:14,padding:"12px",borderRadius:16,background:"#1565C0",border:"1px solid "+C.purple+"44",cursor:"pointer",marginBottom:14}}>
-              <div style={{width:48,height:48,borderRadius:16,background:C.purple+"22",display:"flex",alignItems:"center",justifyContent:"center",fontSize:24,border:"2px solid "+C.purple+"44"}}>{profile.avatar}</div>
+              {profile.photoURL
+                ?<img src={profile.photoURL} alt="" style={{width:48,height:48,borderRadius:16,objectFit:"cover",border:"2px solid "+C.purple+"44",flexShrink:0}}/>
+                :<div style={{width:48,height:48,borderRadius:16,background:C.purple+"22",display:"flex",alignItems:"center",justifyContent:"center",fontSize:24,border:"2px solid "+C.purple+"44"}}>{profile.avatar}</div>
+              }
               <div style={{flex:1}}>
                 <div style={{fontWeight:800,fontSize:15,background:G.purple,WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent"}}>{profile.name}</div>
                 <div style={{fontSize:11,color:C.muted}}>PRO · 🔥 7 day streak · {profile.weight}kg · {profile.height}cm</div>
@@ -4335,7 +4346,46 @@ function MainApp({initProfile}){
       {/* Profile Modal */}
       {showProfile&&editProfile&&(function(){
         var AVATARS=["🏃","🧘","💪","🚴","🏊","⚡","🔥","🦅","🐯","🏋️"];
-        function save(){setProfile(Object.assign({},editProfile));setShowProfile(false);}
+        function save(){
+          var updated=Object.assign({},editProfile);
+          setProfile(updated);
+          setShowProfile(false);
+          // Also push photoURL to Firestore user doc
+          if(window.__sfUid&&window.__FB){
+            var db=window.__FB.db,doc=window.__FB.doc,setDoc=window.__FB.setDoc;
+            if(db&&doc&&setDoc){
+              setDoc(doc(db,"users",window.__sfUid),{photoURL:updated.photoURL||"",name:updated.name||"",updatedAt:Date.now()},{merge:true}).catch(function(){});
+            }
+          }
+        }
+        function pickPhoto(){
+          var inp=document.createElement("input");
+          inp.type="file";inp.accept="image/*";
+          inp.onchange=function(e){
+            var file=e.target.files&&e.target.files[0];
+            if(!file)return;
+            var reader=new FileReader();
+            reader.onload=function(ev){
+              var img=new Image();
+              img.onload=function(){
+                var SIZE=240;
+                var canvas=document.createElement("canvas");
+                canvas.width=SIZE;canvas.height=SIZE;
+                var ctx=canvas.getContext("2d");
+                // crop square from center
+                var s=Math.min(img.width,img.height);
+                var sx=(img.width-s)/2,sy=(img.height-s)/2;
+                ctx.drawImage(img,sx,sy,s,s,0,0,SIZE,SIZE);
+                var dataURL=canvas.toDataURL("image/jpeg",0.82);
+                setEditProfile(function(p){return Object.assign({},p,{photoURL:dataURL});});
+              };
+              img.src=ev.target.result;
+            };
+            reader.readAsDataURL(file);
+          };
+          inp.click();
+        }
+        var epInitials=(editProfile.name||"?").split(" ").map(function(w){return w[0];}).join("").slice(0,2).toUpperCase();
         return(
           <div onClick={function(){setShowProfile(false);}} style={{position:"fixed",inset:0,zIndex:300,background:"rgba(0,0,0,0.7)",backdropFilter:"blur(8px)",display:"flex",alignItems:"flex-end",justifyContent:"center",padding:"0"}}>
             <div onClick={function(e){e.stopPropagation();}} style={{width:"100%",maxWidth:420,borderRadius:"28px 28px 0 0",background:darkMode?"#0F0F18":"linear-gradient(160deg,#0D47A1,#1565C0)",border:"1px solid rgba(255,255,255,0.1)",padding:"24px 20px 36px",maxHeight:"85vh",overflowY:"auto"}}>
@@ -4344,9 +4394,23 @@ function MainApp({initProfile}){
               <div style={{fontSize:16,fontWeight:900,color:C.text,marginBottom:4,letterSpacing:0.5}}>My Profile</div>
               <div style={{fontSize:12,color:C.muted,marginBottom:20}}>Your info is saved on this device</div>
 
+              {/* Profile photo upload */}
+              <div style={{display:"flex",flexDirection:"column",alignItems:"center",marginBottom:24}}>
+                <div onClick={pickPhoto} style={{position:"relative",cursor:"pointer",marginBottom:10}}>
+                  {editProfile.photoURL
+                    ?<img src={editProfile.photoURL} alt="" style={{width:88,height:88,borderRadius:"50%",objectFit:"cover",border:"3px solid "+C.green,boxShadow:"0 0 20px "+C.green+"55"}}/>
+                    :<div style={{width:88,height:88,borderRadius:"50%",background:"linear-gradient(135deg,#1565C0,#0D47A1)",border:"3px solid rgba(255,255,255,0.2)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:28,fontWeight:900,color:"#fff"}}>{epInitials||"👤"}</div>
+                  }
+                  {/* camera badge */}
+                  <div style={{position:"absolute",bottom:0,right:0,width:28,height:28,borderRadius:"50%",background:C.green,border:"2px solid #0F0F18",display:"flex",alignItems:"center",justifyContent:"center",fontSize:14}}>📷</div>
+                </div>
+                <div style={{fontSize:12,color:C.muted}}>Tap photo to change</div>
+                {editProfile.photoURL&&<div onClick={function(){setEditProfile(function(p){return Object.assign({},p,{photoURL:""});});}} style={{fontSize:11,color:"#ff6b6b",marginTop:4,cursor:"pointer",textDecoration:"underline"}}>Remove photo</div>}
+              </div>
+
               {/* Avatar picker */}
               <div style={{marginBottom:20}}>
-                <div style={{fontSize:11,color:C.muted,fontWeight:700,letterSpacing:1,marginBottom:10}}>AVATAR</div>
+                <div style={{fontSize:11,color:C.muted,fontWeight:700,letterSpacing:1,marginBottom:10}}>AVATAR EMOJI (used as fallback)</div>
                 <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
                   {AVATARS.map(function(a){
                     return <div key={a} onClick={function(){setEditProfile(function(p){return Object.assign({},p,{avatar:a});});}} style={{width:44,height:44,borderRadius:14,display:"flex",alignItems:"center",justifyContent:"center",fontSize:22,cursor:"pointer",background:editProfile.avatar===a?"rgba(0,245,160,0.2)":"rgba(255,255,255,0.06)",border:"2px solid "+(editProfile.avatar===a?C.green:"transparent"),transition:"all 0.2s"}}>{a}</div>;
