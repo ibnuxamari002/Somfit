@@ -816,6 +816,7 @@ function MainApp({initProfile}){
   const [fsFriends,setFsFriends]=useState([]);    // my friends list from Firestore
   const [fsSearching,setFsSearching]=useState(false);
   const [fsChallenges,setFsChallenges]=useState([]); // cloud challenges
+  const [fsInvites,setFsInvites]=useState([]);    // challenges I've been invited to
   const [viewPlayer,setViewPlayer]=useState(null);   // leaderboard row being viewed
   const [viewPlayerInfo,setViewPlayerInfo]=useState(null); // their cloud profile
   const [zoomPhoto,setZoomPhoto]=useState(null); // fullscreen photo zoom URL
@@ -1165,6 +1166,25 @@ function MainApp({initProfile}){
     return function(){unsub();};
   },[]);
 
+  // ── Firestore: listen for challenge invitations sent to me ──
+  useEffect(function(){
+    if(!window.__FB)return;
+    var myUid=window.__sfUid;
+    if(!myUid)return;
+    var fb=window.__FB;
+    var unsub=fb.onSnapshot(fb.collection(fb.db,"challenges"),function(snap){
+      var invites=[];
+      snap.forEach(function(d){
+        var ch=Object.assign({id:d.id},d.data());
+        var invited=(ch.invitedUids||[]).indexOf(myUid)!==-1;
+        var alreadyIn=(ch.participants||[]).some(function(p){return p.uid===myUid;});
+        if(invited&&!alreadyIn)invites.push(ch);
+      });
+      setFsInvites(invites);
+    });
+    return function(){unsub();};
+  },[]);
+
   // ── Firestore: invite friend to challenge ──
   function fsInviteFriend(challengeId,friendUid,friendName){
     if(!window.__FB)return;
@@ -1172,6 +1192,42 @@ function MainApp({initProfile}){
     fb.updateDoc(fb.doc(fb.db,"challenges",challengeId),{
       invitedUids:fb.arrayUnion(friendUid)
     }).then(function(){setToast("✅ Invited "+friendName+" to challenge!");}).catch(function(){setToast("Error inviting friend");});
+  }
+
+  // ── Accept a challenge invite ──
+  function fsAcceptInvite(ch){
+    if(!window.__FB||!window.__sfUid)return;
+    var fb=window.__FB;
+    var myUid=window.__sfUid;
+    fb.updateDoc(fb.doc(fb.db,"challenges",ch.id),{
+      participants:fb.arrayUnion({uid:myUid,name:profile.name||"User",steps:0,photoURL:profile.photoURL||"",joinedAt:Date.now()}),
+      invitedUids:fb.arrayRemove(myUid)
+    }).then(function(){
+      // Also add to local myChallenges
+      var daysLeft=ch.daysLeft||30;
+      var newC={
+        id:ch.id,title:ch.title,goal:ch.goal||"",unit:ch.unit||"steps",
+        color:ch.color||"#4CAF50",bg:"linear-gradient(160deg,#1B5E20,#2E7D32)",
+        icon:ch.icon||"🏃",participants:(ch.participants||[]).length+1,
+        daysLeft:daysLeft,mySteps:0,joined:true,
+        leaderboard:[],invitedNames:[],
+        aiMsg:"You joined the challenge!"
+      };
+      setMyChallenges(function(prev){
+        if(prev.some(function(c){return c.id===ch.id||c.title===ch.title;}))return prev;
+        return [newC].concat(prev);
+      });
+      setToast("✅ Joined "+ch.title+"!");
+    }).catch(function(){setToast("Error joining challenge");});
+  }
+
+  // ── Decline a challenge invite ──
+  function fsDeclineInvite(ch){
+    if(!window.__FB||!window.__sfUid)return;
+    var fb=window.__FB;
+    fb.updateDoc(fb.doc(fb.db,"challenges",ch.id),{
+      invitedUids:fb.arrayRemove(window.__sfUid)
+    }).then(function(){setToast("Declined "+ch.title);}).catch(function(){});
   }
 
   // ── New: modal states ──
@@ -2951,6 +3007,32 @@ function MainApp({initProfile}){
         {/* SOCIAL TAB */}
         {tab==="social"&&<div style={{display:"flex",flexDirection:"column",gap:14}}>
 
+          {/* Challenge Invitations */}
+          {fsInvites.length>0&&<div style={{borderRadius:20,background:"linear-gradient(135deg,#1a2a3a,#0d1f2d)",border:"2px solid #FF9800AA",padding:"16px 16px 12px",boxShadow:"0 0 24px #FF980033"}}>
+            <div style={{fontSize:11,color:"#FF9800",fontWeight:800,letterSpacing:1.5,marginBottom:12}}>🔔 CHALLENGE INVITATIONS</div>
+            {fsInvites.map(function(inv){
+              var alreadyIn=myChallenges.some(function(c){return c.id===inv.id||c.title===inv.title;});
+              return(
+                <div key={inv.id} style={{borderRadius:16,background:"rgba(255,255,255,0.05)",border:"1px solid rgba(255,152,0,0.3)",padding:"14px",marginBottom:8}}>
+                  <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:12}}>
+                    <div style={{width:44,height:44,borderRadius:14,background:(inv.color||"#4CAF50")+"33",border:"2px solid "+(inv.color||"#4CAF50")+"88",display:"flex",alignItems:"center",justifyContent:"center",fontSize:22,flexShrink:0}}>{inv.icon||"🏆"}</div>
+                    <div style={{flex:1,minWidth:0}}>
+                      <div style={{fontSize:14,fontWeight:900,color:"#fff",marginBottom:2}}>{inv.title}</div>
+                      <div style={{fontSize:11,color:"rgba(255,255,255,0.5)"}}>from {inv.creatorName||"Someone"} · {inv.goal||""} · {inv.daysLeft||30} days</div>
+                    </div>
+                  </div>
+                  {alreadyIn
+                    ?<div style={{fontSize:12,color:"#4CAF50",fontWeight:700}}>✅ Already joined</div>
+                    :<div style={{display:"flex",gap:8}}>
+                      <button onClick={function(){fsAcceptInvite(inv);}} style={{flex:1,padding:"11px",borderRadius:12,border:"none",background:"linear-gradient(135deg,#4CAF50,#66BB6A)",color:"#0a1a0a",fontSize:13,fontWeight:900,cursor:"pointer"}}>✅ Accept</button>
+                      <button onClick={function(){fsDeclineInvite(inv);}} style={{flex:1,padding:"11px",borderRadius:12,border:"1px solid rgba(255,255,255,0.15)",background:"transparent",color:"rgba(255,255,255,0.5)",fontSize:13,fontWeight:700,cursor:"pointer"}}>✕ Decline</button>
+                    </div>
+                  }
+                </div>
+              );
+            })}
+          </div>}
+
           {/* Leaderboard */}
           <GlassCard style={{padding:18}}>
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
@@ -4342,6 +4424,8 @@ function MainApp({initProfile}){
                       </linearGradient></defs>
                       <path d={t.svgPath} fill={"url(#ng3"+t.id+")"}/>
                     </svg>
+                    {/* Invite notification badge */}
+                    {t.id==="social"&&fsInvites.length>0&&<div style={{position:"absolute",top:2,right:2,minWidth:16,height:16,borderRadius:8,background:"#FF3B30",border:"2px solid #0F0F18",display:"flex",alignItems:"center",justifyContent:"center",fontSize:9,fontWeight:900,color:"#fff",padding:"0 3px"}}>{fsInvites.length}</div>}
                   </div>
                   {/* Active bar under icon */}
                   {active&&<div style={{position:"absolute",bottom:22,left:"50%",width:22,height:3,borderRadius:2,background:"linear-gradient(90deg,"+t.grad[0]+","+t.grad[1]+")",boxShadow:"0 0 10px "+t.grad[0]+"cc,0 0 20px "+t.grad[0]+"55",animation:"navGlow 2.5s ease-in-out infinite",zIndex:1}}/>}
