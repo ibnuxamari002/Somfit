@@ -1134,7 +1134,7 @@ function MainApp({initProfile}){
     var data=Object.assign({},challengeData,{
       creatorUid:myUid,
       creatorName:profile.name||"User",
-      participants:[{uid:myUid,name:profile.name||"User",steps:steps||0}],
+      participants:[{uid:myUid,name:profile.name||"User",steps:steps||0,photoURL:profile.photoURL||""}],
       createdAt:fb.serverTimestamp(),
       invitedUids:[]
     });
@@ -3178,7 +3178,7 @@ function MainApp({initProfile}){
               // Use Firestore participants, sorted by steps desc
               baseLeaderboard=fsMatch.participants.slice().sort(function(a,b){return (b.steps||0)-(a.steps||0);}).map(function(p,i){
                 var isMe=p.uid===window.__sfUid;
-                return {rank:i+1,uid:p.uid,name:isMe?myName:p.name,steps:p.steps||0,avatar:isMe?"🏃":"👤",photoURL:isMe?(profile.photoURL||""):(p.photoURL||""),isMe:isMe};
+                return {rank:i+1,uid:p.uid,name:isMe?myName:p.name,steps:p.steps||0,avatar:isMe?(profile.avatar||"🏃"):"👤",photoURL:isMe?(profile.photoURL||""):(p.photoURL||""),isMe:isMe};
               });
             } else {
               // Fallback: local leaderboard + invited names
@@ -3604,10 +3604,14 @@ function MainApp({initProfile}){
                         goal:goalStr,unit:unit,
                         participants:1,ends:todayStr+" – "+endStr,daysLeft:daysLeft,
                         mySteps:0,scene:actIcons[cActivity]||"🎯",
-                        leaderboard:[{rank:1,name:"Mohamed",steps:0,avatar:"🏃",isMe:true}],
+                        leaderboard:[{rank:1,name:profile.name||"You",steps:0,avatar:profile.avatar||"🏃",photoURL:profile.photoURL||"",isMe:true}],
                         aiMsg:"Challenge created! Invite friends to compete.",
                         badge:"",mode:cMode,team:cTeam,joined:true,progress:0,steps:[],days:String(daysLeft),
                       };
+                      // Save to Firestore and store returned id on the local challenge
+                      fsCreateChallenge({title:cName,goal:goalStr,unit:unit,daysLeft:daysLeft,mode:cMode,color:actColors[cActivity]||"#448AFF",icon:actIcons[cActivity]||"🎯"}).then(function(id){
+                        if(id){setMyChallenges(function(prev){return prev.map(function(c){return c.title===cName?Object.assign({},c,{id:id}):c;});});}
+                      });
                       setMyChallenges(function(prev){return [newC].concat(prev);});
                       resetCreate();
                       setShowCreateChallenge(false);
@@ -3624,7 +3628,7 @@ function MainApp({initProfile}){
           {/* Participant profile sheet — opens when a leaderboard row is tapped */}
           {viewPlayer&&(function(){
             var p=viewPlayer,info=viewPlayerInfo||{};
-            var photo=p.photoURL||info.photoURL||(p.isMe&&profile.photoURL)||"";
+            var photo=p.photoURL||info.photoURL||"";
             var initials=(p.name||"?").split(" ").map(function(w){return w[0];}).join("").slice(0,2).toUpperCase();
             var gapTop=Math.max(0,(p.topSteps||0)-(p.steps||0));
             var diffMe=(p.steps||0)-(p.mySteps||0);
@@ -4377,7 +4381,7 @@ function MainApp({initProfile}){
               if(!snap.empty){
                 var docRef=snap.docs[0].ref;
                 fb.updateDoc(docRef,{
-                  participants:fb.arrayUnion({uid:window.__sfUid,name:profile.name||"User",steps:0,photoURL:profile.photoURL||""}),
+                  participants:fb.arrayUnion({uid:window.__sfUid,name:profile.name||"User",steps:0,photoURL:profile.photoURL||"",joinedAt:Date.now()}),
                   invitedUids:fb.arrayRemove(window.__sfUid)
                 }).catch(function(){});
               }
