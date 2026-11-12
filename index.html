@@ -4444,36 +4444,52 @@ function MainApp({initProfile}){
         var alreadyIn=myChallenges.some(function(c){return c.title===jch.title;});
         function acceptJoin(){
           if(alreadyIn){setPendingJoin(null);return;}
-          // Add to local myChallenges
-          var now=new Date();
-          var end=new Date(now.getTime()+jch.days*86400000);
-          var newCh={
-            title:jch.title,goal:jch.goal,days:jch.days,
-            starts:now.toLocaleDateString("en-US",{weekday:"short",month:"short",day:"numeric"}),
-            ends:end.toLocaleDateString("en-US",{weekday:"short",month:"short",day:"numeric"}),
-            daysLeft:jch.days,participants:1,mySteps:0,color:"#4CAF50",unit:"steps",
-            emoji:"🏃",bg:"linear-gradient(135deg,#1a3a1a,#0a2a0e)",joined:true,
-            leaderboard:[{rank:1,name:profile.name||"You",steps:0,avatar:profile.avatar||"🏃",isMe:true}],
-            invitedNames:[],_accepted:true
-          };
-          setMyChallenges(function(prev){return [newCh].concat(prev);});
-          // Also write to Firestore if challenge doc exists
-          if(window.__sfUid&&window.__FB){
-            var fb=window.__FB;
-            var q=fb.query(fb.collection(fb.db,"challenges"),fb.where("title","==",jch.title));
-            fb.getDocs(q).then(function(snap){
-              if(!snap.empty){
-                var docRef=snap.docs[0].ref;
-                fb.updateDoc(docRef,{
-                  participants:fb.arrayUnion({uid:window.__sfUid,name:profile.name||"User",steps:0,photoURL:profile.photoURL||"",joinedAt:Date.now()}),
-                  invitedUids:fb.arrayRemove(window.__sfUid)
-                }).catch(function(){});
-              }
-            }).catch(function(){});
-          }
+          if(!window.__FB){setToast("Sign in first to join");return;}
+          var myUid=window.__sfUid;
+          if(!myUid){setToast("Sign in first to join");return;}
+          var fb=window.__FB;
+          // Find the Firestore challenge doc by title
+          var q=fb.query(fb.collection(fb.db,"challenges"),fb.where("title","==",jch.title));
+          fb.getDocs(q).then(function(snap){
+            if(snap.empty){
+              // No Firestore doc — add locally only
+              var now=new Date();
+              var newCh={title:jch.title,goal:jch.goal,days:jch.days,daysLeft:jch.days,participants:1,mySteps:0,color:"#4CAF50",unit:"steps",bg:"linear-gradient(135deg,#1a3a1a,#0a2a0e)",joined:true,leaderboard:[{rank:1,name:profile.name||"You",steps:0,avatar:profile.avatar||"🏃",photoURL:profile.photoURL||"",isMe:true}],invitedNames:[]};
+              setMyChallenges(function(prev){return [newCh].concat(prev);});
+              setToast("✅ Joined "+jch.title+" (offline)");
+            } else {
+              var docSnap=snap.docs[0];
+              var docRef=docSnap.ref;
+              var fsData=docSnap.data();
+              // Write myself into participants
+              fb.updateDoc(docRef,{
+                participants:fb.arrayUnion({uid:myUid,name:profile.name||"User",steps:0,photoURL:profile.photoURL||"",joinedAt:Date.now()}),
+                invitedUids:fb.arrayRemove(myUid)
+              }).then(function(){
+                // Add to local myChallenges with Firestore id so leaderboard listener picks it up
+                var newCh={
+                  id:docSnap.id,
+                  title:fsData.title||jch.title,
+                  goal:fsData.goal||jch.goal,
+                  unit:fsData.unit||"steps",
+                  color:fsData.color||"#4CAF50",
+                  bg:"linear-gradient(135deg,#1a3a1a,#0a2a0e)",
+                  icon:fsData.icon||"🏃",
+                  daysLeft:fsData.daysLeft||jch.days,
+                  participants:(fsData.participants||[]).length+1,
+                  mySteps:0,joined:true,
+                  leaderboard:[],invitedNames:[],
+                  aiMsg:"You joined the challenge!"
+                };
+                setMyChallenges(function(prev){
+                  if(prev.some(function(c){return c.id===docSnap.id||c.title===fsData.title;}))return prev;
+                  return [newCh].concat(prev);
+                });
+                setToast("✅ Joined "+jch.title+"!");
+              }).catch(function(){setToast("Error joining — try again");});
+            }
+          }).catch(function(){setToast("Error joining — check connection");});
           setPendingJoin(null);
-          setToast("✅ Joined "+jch.title+"!");
-          // Clean URL
           try{window.history.replaceState({},"",window.location.pathname);}catch(e){}
         }
         function declineJoin(){
