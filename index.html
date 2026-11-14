@@ -375,6 +375,7 @@ const TABS=[
   {id:"maps",label:"Maps",svgPath:"M20.5 3l-.16.03L15 5.1 9 3 3.36 4.9c-.21.07-.36.25-.36.48V20.5c0 .28.22.5.5.5l.16-.03L9 18.9l6 2.1 5.64-1.9c.21-.07.36-.25.36-.48V3.5c0-.28-.22-.5-.5-.5zM15 19l-6-2.11V5l6 2.11V19z",grad:[C.cyan,C.blue]},
   {id:"analytics",label:"Stats",svgPath:"M4 20h4V10H4v10zm6 0h4V4h-4v16zm6 0h4v-7h-4v7z",grad:[C.amber,C.pink]},
   {id:"social",label:"Social",svgPath:"M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z",grad:[C.pink,C.purpleLight]},
+  {id:"chat",label:"Chat",svgPath:"M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-2 12H6v-2h12v2zm0-3H6V9h12v2zm0-3H6V6h12v2z",grad:[C.green,C.cyan]},
   {id:"fitness",label:"Fitness",svgPath:"M20.57 14.86L22 13.43 20.57 12 17 15.57 8.43 7 12 3.43 10.57 2 9.14 3.43 7.71 2 5.57 4.14 4.14 2.71 2.71 4.14l1.43 1.43L2 7.71l1.43 1.43L2 10.57 3.43 12 7 8.43 15.57 17 12 20.57 13.43 22l1.43-1.43L16.29 22l2.14-2.14 1.43 1.43 1.43-1.43-1.43-1.43L22 16.29z",grad:[C.red,C.amber]},
   {id:"more",label:"More",svgPath:"M4 8h4V4H4v4zm6 0h4V4h-4v4zm6 0h4V4h-4v4zM4 14h4v-4H4v4zm6 0h4v-4h-4v4zm6 0h4v-4h-4v4zM4 20h4v-4H4v4zm6 0h4v-4h-4v4zm6 0h4v-4h-4v4z",grad:[C.purpleLight,C.purple]},
 ];
@@ -1259,6 +1260,7 @@ function MainApp({initProfile}){
         fb.setDoc(chatRef,{members:[myUid,uid],lastAt:Date.now(),lastMsg:"",unread:{}});
       }
       setOpenChat({uid:uid,name:name,photoURL:photoURL,chatId:chatId});
+      setTab("chat");
     });
   }
 
@@ -3176,52 +3178,16 @@ function MainApp({initProfile}){
             </div>
           </div>
 
-          {/* ── MESSAGES (chat list) ── */}
-          <GlassCard style={{padding:0,overflow:"hidden"}}>
-            <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"14px 16px 10px"}}>
-              <div style={{fontSize:12,color:C.muted,fontWeight:700,letterSpacing:0.5}}>💬 MESSAGES {chatUnread>0&&<span style={{marginLeft:6,background:C.pink,color:"#fff",borderRadius:8,padding:"1px 7px",fontSize:10,fontWeight:900}}>{chatUnread}</span>}</div>
+          {/* ── MESSAGES shortcut ── */}
+          <div onClick={function(){setTab("chat");}} style={{display:"flex",alignItems:"center",gap:14,padding:"14px 18px",borderRadius:18,background:"linear-gradient(135deg,rgba(76,175,80,0.12),rgba(0,188,212,0.08))",border:"1px solid rgba(76,175,80,0.25)",cursor:"pointer"}}>
+            <div style={{width:44,height:44,borderRadius:50,background:"linear-gradient(135deg,#4CAF50,#00BCD4)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:22,flexShrink:0}}>💬</div>
+            <div style={{flex:1}}>
+              <div style={{fontSize:14,fontWeight:900,color:"#fff",marginBottom:2}}>Messages</div>
+              <div style={{fontSize:12,color:C.muted}}>{fsChats.length>0?fsChats.length+" conversation"+(fsChats.length>1?"s":""):"Chat with friends"}</div>
             </div>
-            {fsChats.length===0
-              ?<div style={{padding:"12px 16px 16px",fontSize:12,color:C.dim,textAlign:"center"}}>No messages yet. Add friends and start chatting!</div>
-              :fsChats.map(function(ch){
-                var myUid=window.__sfUid||"";
-                var otherUid=ch.members.find(function(m){return m!==myUid;})||"";
-                var otherName=ch.otherName||otherUid.slice(0,8);
-                var otherPhoto=ch.otherPhoto||"";
-                var unr=(ch.unread||{})[myUid]||0;
-                var initials=(otherName||"?").split(" ").map(function(w){return w[0];}).join("").toUpperCase().slice(0,2);
-                return(
-                  <div key={ch.id} onClick={function(){openChatWith(otherUid,otherName,otherPhoto);}} style={{display:"flex",alignItems:"center",gap:12,padding:"10px 16px",borderTop:"1px solid "+C.border,cursor:"pointer",background:unr>0?"rgba(255,255,255,0.03)":"transparent"}}>
-                    <div style={{width:44,height:44,borderRadius:50,overflow:"hidden",background:C.purple+"33",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
-                      {otherPhoto?<img src={otherPhoto} alt="" style={{width:"100%",height:"100%",objectFit:"cover"}}/>:<div style={{fontSize:14,fontWeight:900,color:"#fff"}}>{initials}</div>}
-                    </div>
-                    <div style={{flex:1,minWidth:0}}>
-                      <div style={{fontSize:13,fontWeight:unr>0?900:700,color:unr>0?C.text:C.muted,marginBottom:2}}>{otherName||"User"}</div>
-                      <div style={{fontSize:11,color:C.dim,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{ch.lastMsg||"Say hi! 👋"}</div>
-                    </div>
-                    {unr>0&&<div style={{minWidth:20,height:20,borderRadius:10,background:C.green,display:"flex",alignItems:"center",justifyContent:"center",fontSize:10,fontWeight:900,color:"#fff",padding:"0 5px"}}>{unr}</div>}
-                  </div>
-                );
-              })
-            }
-            {/* Quick-start chat from friends */}
-            {fsFriends.length>0&&<div style={{padding:"10px 16px 14px",borderTop:"1px solid "+C.border}}>
-              <div style={{fontSize:11,color:C.dim,marginBottom:8}}>Friends</div>
-              <div style={{display:"flex",gap:10,overflowX:"auto",paddingBottom:2}}>
-                {fsFriends.map(function(f){
-                  var initials=(f.name||"?").split(" ").map(function(w){return w[0];}).join("").toUpperCase().slice(0,2);
-                  return(
-                    <div key={f.uid} onClick={function(){openChatWith(f.uid,f.name||"Friend",f.photoURL||"");}} style={{display:"flex",flexDirection:"column",alignItems:"center",gap:4,cursor:"pointer",minWidth:50}}>
-                      <div style={{width:40,height:40,borderRadius:50,overflow:"hidden",background:C.pink+"33",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
-                        {f.photoURL?<img src={f.photoURL} alt="" style={{width:"100%",height:"100%",objectFit:"cover"}}/>:<div style={{fontSize:12,fontWeight:900,color:"#fff"}}>{initials}</div>}
-                      </div>
-                      <div style={{fontSize:9,color:C.muted,textAlign:"center",maxWidth:50,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{(f.name||"?").split(" ")[0]}</div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>}
-          </GlassCard>
+            {chatUnread>0&&<div style={{minWidth:22,height:22,borderRadius:11,background:"#FF3B30",display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,fontWeight:900,color:"#fff",padding:"0 6px"}}>{chatUnread}</div>}
+            <div style={{fontSize:18,color:C.muted}}>›</div>
+          </div>
 
           {/* Challenge Invitations */}
           {fsInvites.length>0&&<div style={{borderRadius:20,background:"linear-gradient(135deg,#1a2a3a,#0d1f2d)",border:"2px solid #FF9800AA",padding:"16px 16px 12px",boxShadow:"0 0 24px #FF980033"}}>
@@ -4339,6 +4305,150 @@ function MainApp({initProfile}){
           );
         })()}
 
+        {/* CHAT TAB */}
+        {tab==="chat"&&<div style={{display:"flex",flexDirection:"column",gap:0,height:"calc(100vh - 130px)"}}>
+          {openChat
+            /* ── OPEN CONVERSATION ── */
+            ?(function(){
+              var myUid=window.__sfUid||"";
+              var initials=(openChat.name||"?").split(" ").map(function(w){return w[0];}).join("").toUpperCase().slice(0,2);
+              return(
+                <div style={{display:"flex",flexDirection:"column",height:"100%"}}>
+                  {/* header */}
+                  <div style={{display:"flex",alignItems:"center",gap:12,padding:"10px 16px 12px",background:"linear-gradient(180deg,#141E2E 80%,transparent)",borderBottom:"1px solid rgba(255,255,255,0.08)"}}>
+                    <div onClick={function(){setOpenChat(null);setChatMessages([]);}} style={{width:36,height:36,borderRadius:50,background:"rgba(255,255,255,0.08)",display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",fontSize:20,flexShrink:0}}>←</div>
+                    <div style={{width:40,height:40,borderRadius:50,overflow:"hidden",background:C.purple+"33",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+                      {openChat.photoURL?<img src={openChat.photoURL} alt="" style={{width:"100%",height:"100%",objectFit:"cover"}}/>:<div style={{fontSize:14,fontWeight:900,color:"#fff"}}>{initials}</div>}
+                    </div>
+                    <div style={{flex:1}}>
+                      <div style={{fontSize:15,fontWeight:900,color:"#fff"}}>{openChat.name||"User"}</div>
+                      <div style={{fontSize:11,color:C.green,fontWeight:600}}>● Active now</div>
+                    </div>
+                  </div>
+                  {/* messages */}
+                  <div style={{flex:1,overflowY:"auto",padding:"14px 14px",display:"flex",flexDirection:"column",gap:8}}>
+                    {chatMessages.length===0&&<div style={{textAlign:"center",color:C.dim,fontSize:13,marginTop:40}}>No messages yet. Say hi! 👋</div>}
+                    {chatMessages.map(function(m){
+                      var isMe=m.uid===myUid;
+                      return(
+                        <div key={m.id} style={{display:"flex",flexDirection:"column",alignItems:isMe?"flex-end":"flex-start",gap:2}}>
+                          <div style={{maxWidth:"78%",padding:"10px 14px",borderRadius:isMe?"18px 18px 4px 18px":"18px 18px 18px 4px",background:isMe?"linear-gradient(135deg,#4CAF50,#66BB6A)":"rgba(255,255,255,0.09)",color:isMe?"#071a07":"#fff",fontSize:14,lineHeight:1.45,fontWeight:isMe?600:400,wordBreak:"break-word"}}>
+                            {m.text}
+                          </div>
+                          <div style={{fontSize:9,color:C.dim,padding:"0 4px"}}>{new Date(m.at).toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"})}</div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                  {/* input bar */}
+                  <div style={{display:"flex",alignItems:"center",gap:10,padding:"10px 14px 16px",borderTop:"1px solid rgba(255,255,255,0.07)",background:"#0F0F18"}}>
+                    <input
+                      value={chatInput}
+                      onChange={function(e){setChatInput(e.target.value);}}
+                      onKeyDown={function(e){if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();sendChatMsg();}}}
+                      placeholder={"Message "+openChat.name+"…"}
+                      style={{flex:1,background:"rgba(255,255,255,0.07)",border:"1px solid rgba(255,255,255,0.12)",borderRadius:24,padding:"11px 18px",fontSize:14,color:"#fff",outline:"none"}}
+                    />
+                    <button onClick={sendChatMsg} style={{width:44,height:44,borderRadius:50,border:"none",background:"linear-gradient(135deg,#4CAF50,#66BB6A)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:20,cursor:"pointer",flexShrink:0,color:"#fff"}}>➤</button>
+                  </div>
+                </div>
+              );
+            })()
+            /* ── CHAT HOME ── */
+            :<div style={{display:"flex",flexDirection:"column",gap:0,flex:1}}>
+              {/* header */}
+              <div style={{padding:"10px 18px 14px",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+                <div style={{fontSize:20,fontWeight:900,color:"#fff"}}>Messages</div>
+                {chatUnread>0&&<div style={{background:C.pink,color:"#fff",borderRadius:12,padding:"2px 10px",fontSize:12,fontWeight:900}}>{chatUnread} new</div>}
+              </div>
+              {/* stories row */}
+              <div style={{overflowX:"auto",paddingLeft:16,paddingBottom:8}}>
+                <div style={{display:"flex",gap:12,minWidth:"max-content"}}>
+                  <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:5,cursor:"pointer"}} onClick={function(){setShowAddStory(true);}}>
+                    <div style={{position:"relative",width:58,height:58}}>
+                      <div style={{width:58,height:58,borderRadius:50,border:"2px dashed "+C.blue,background:C.card2,display:"flex",alignItems:"center",justifyContent:"center",overflow:"hidden"}}>
+                        {profile.photoURL?<img src={profile.photoURL} alt="" style={{width:"100%",height:"100%",objectFit:"cover"}}/>:<div style={{fontSize:20}}>📷</div>}
+                      </div>
+                      <div style={{position:"absolute",bottom:0,right:0,width:18,height:18,borderRadius:50,background:C.blue,border:"2px solid #0F0F18",display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,fontWeight:900,color:"#fff"}}>+</div>
+                    </div>
+                    <div style={{fontSize:9,color:C.muted,fontWeight:600}}>My Story</div>
+                  </div>
+                  {fsStories.map(function(s){
+                    var ini=(s.name||"?").split(" ").map(function(w){return w[0];}).join("").toUpperCase().slice(0,2);
+                    return(
+                      <div key={s.id} onClick={function(){setViewStory(s);}} style={{display:"flex",flexDirection:"column",alignItems:"center",gap:5,cursor:"pointer"}}>
+                        <div style={{width:58,height:58,borderRadius:50,padding:2,background:"linear-gradient(135deg,"+C.pink+","+C.purple+","+C.blue+")"}}>
+                          <div style={{width:"100%",height:"100%",borderRadius:50,border:"2px solid #0F0F18",overflow:"hidden",background:C.card2,display:"flex",alignItems:"center",justifyContent:"center"}}>
+                            {s.img?<img src={s.img} alt="" style={{width:"100%",height:"100%",objectFit:"cover"}}/>:(s.photoURL?<img src={s.photoURL} alt="" style={{width:"100%",height:"100%",objectFit:"cover"}}/>:<div style={{fontSize:14,fontWeight:900,color:"#fff"}}>{ini}</div>)}
+                          </div>
+                        </div>
+                        <div style={{fontSize:9,color:C.text,fontWeight:600,maxWidth:58,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",textAlign:"center"}}>{(s.name||"?").split(" ")[0]}</div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+              {/* divider */}
+              <div style={{height:1,background:C.border,margin:"8px 0"}}/>
+              {/* friends quick-start */}
+              {fsFriends.length>0&&<div style={{padding:"10px 16px 6px"}}>
+                <div style={{fontSize:11,color:C.dim,fontWeight:700,letterSpacing:0.5,marginBottom:8}}>FRIENDS</div>
+                <div style={{display:"flex",gap:12,overflowX:"auto",paddingBottom:4}}>
+                  {fsFriends.map(function(f){
+                    var ini=(f.name||"?").split(" ").map(function(w){return w[0];}).join("").toUpperCase().slice(0,2);
+                    return(
+                      <div key={f.uid} onClick={function(){openChatWith(f.uid,f.name||"Friend",f.photoURL||"");}} style={{display:"flex",flexDirection:"column",alignItems:"center",gap:4,cursor:"pointer",minWidth:52}}>
+                        <div style={{width:46,height:46,borderRadius:50,overflow:"hidden",background:C.pink+"33",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,border:"2px solid "+C.pink+"44"}}>
+                          {f.photoURL?<img src={f.photoURL} alt="" style={{width:"100%",height:"100%",objectFit:"cover"}}/>:<div style={{fontSize:13,fontWeight:900,color:"#fff"}}>{ini}</div>}
+                        </div>
+                        <div style={{fontSize:9,color:C.muted,textAlign:"center",maxWidth:52,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{(f.name||"?").split(" ")[0]}</div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>}
+              {/* conversation list */}
+              <div style={{flex:1,overflowY:"auto"}}>
+                {fsChats.length===0
+                  ?<div style={{textAlign:"center",padding:"40px 20px",color:C.dim}}>
+                    <div style={{fontSize:40,marginBottom:12}}>💬</div>
+                    <div style={{fontSize:14,fontWeight:700,color:C.muted,marginBottom:6}}>No messages yet</div>
+                    <div style={{fontSize:12,color:C.dim}}>Add friends from the Social tab and start chatting!</div>
+                  </div>
+                  :fsChats.map(function(ch){
+                    var myUid=window.__sfUid||"";
+                    var otherUid=ch.members.find(function(m){return m!==myUid;})||"";
+                    var otherName=ch.otherName||otherUid.slice(0,8)||"User";
+                    var otherPhoto=ch.otherPhoto||"";
+                    var unr=(ch.unread||{})[myUid]||0;
+                    var ini=(otherName||"?").split(" ").map(function(w){return w[0];}).join("").toUpperCase().slice(0,2);
+                    var ago=ch.lastAt?Math.round((Date.now()-ch.lastAt)/60000):0;
+                    var timeStr=ago<1?"now":ago<60?ago+"m":Math.round(ago/60)+"h";
+                    return(
+                      <div key={ch.id} onClick={function(){openChatWith(otherUid,otherName,otherPhoto);}} style={{display:"flex",alignItems:"center",gap:14,padding:"12px 18px",borderBottom:"1px solid "+C.border,cursor:"pointer",background:unr>0?"rgba(76,175,80,0.04)":"transparent"}}>
+                        <div style={{position:"relative",flexShrink:0}}>
+                          <div style={{width:50,height:50,borderRadius:50,overflow:"hidden",background:C.purple+"33",display:"flex",alignItems:"center",justifyContent:"center"}}>
+                            {otherPhoto?<img src={otherPhoto} alt="" style={{width:"100%",height:"100%",objectFit:"cover"}}/>:<div style={{fontSize:16,fontWeight:900,color:"#fff"}}>{ini}</div>}
+                          </div>
+                          <div style={{position:"absolute",bottom:1,right:1,width:12,height:12,borderRadius:50,background:C.green,border:"2px solid #0F0F18"}}/>
+                        </div>
+                        <div style={{flex:1,minWidth:0}}>
+                          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:3}}>
+                            <div style={{fontSize:14,fontWeight:unr>0?900:700,color:unr>0?"#fff":C.muted}}>{otherName}</div>
+                            <div style={{fontSize:10,color:C.dim}}>{timeStr}</div>
+                          </div>
+                          <div style={{fontSize:12,color:unr>0?C.text:C.dim,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",fontWeight:unr>0?700:400}}>{ch.lastMsg||"Say hi! 👋"}</div>
+                        </div>
+                        {unr>0&&<div style={{minWidth:20,height:20,borderRadius:10,background:C.green,display:"flex",alignItems:"center",justifyContent:"center",fontSize:10,fontWeight:900,color:"#fff",padding:"0 5px",flexShrink:0}}>{unr}</div>}
+                      </div>
+                    );
+                  })
+                }
+              </div>
+            </div>
+          }
+        </div>}
+
         {/* MORE TAB */}
         {tab==="more"&&<div style={{display:"flex",flexDirection:"column",gap:14}}>
 
@@ -4641,7 +4751,8 @@ function MainApp({initProfile}){
                       <path d={t.svgPath} fill={"url(#ng3"+t.id+")"}/>
                     </svg>
                     {/* Invite notification badge */}
-                    {t.id==="social"&&(fsInvites.length+chatUnread)>0&&<div style={{position:"absolute",top:2,right:2,minWidth:16,height:16,borderRadius:8,background:"#FF3B30",border:"2px solid #0F0F18",display:"flex",alignItems:"center",justifyContent:"center",fontSize:9,fontWeight:900,color:"#fff",padding:"0 3px"}}>{fsInvites.length+chatUnread}</div>}
+                    {t.id==="social"&&fsInvites.length>0&&<div style={{position:"absolute",top:2,right:2,minWidth:16,height:16,borderRadius:8,background:"#FF3B30",border:"2px solid #0F0F18",display:"flex",alignItems:"center",justifyContent:"center",fontSize:9,fontWeight:900,color:"#fff",padding:"0 3px"}}>{fsInvites.length}</div>}
+                    {t.id==="chat"&&chatUnread>0&&<div style={{position:"absolute",top:2,right:2,minWidth:16,height:16,borderRadius:8,background:"#FF3B30",border:"2px solid #0F0F18",display:"flex",alignItems:"center",justifyContent:"center",fontSize:9,fontWeight:900,color:"#fff",padding:"0 3px"}}>{chatUnread}</div>}
                   </div>
                   {/* Active bar under icon */}
                   {active&&<div style={{position:"absolute",bottom:22,left:"50%",width:22,height:3,borderRadius:2,background:"linear-gradient(90deg,"+t.grad[0]+","+t.grad[1]+")",boxShadow:"0 0 10px "+t.grad[0]+"cc,0 0 20px "+t.grad[0]+"55",animation:"navGlow 2.5s ease-in-out infinite",zIndex:1}}/>}
@@ -4801,14 +4912,15 @@ function MainApp({initProfile}){
             reader.onload=function(ev){
               var img=new Image();
               img.onload=function(){
-                var W=600,H=800;
+                // Square crop 400×400 — keeps size under Firestore 1MB limit
+                var S=400;
                 var canvas=document.createElement("canvas");
-                canvas.width=W;canvas.height=H;
+                canvas.width=S;canvas.height=S;
                 var ctx=canvas.getContext("2d");
-                var ratio=Math.min(W/img.width,H/img.height);
-                var w2=img.width*ratio,h2=img.height*ratio;
-                ctx.drawImage(img,(W-w2)/2,(H-h2)/2,w2,h2);
-                setStoryImg(canvas.toDataURL("image/jpeg",0.80));
+                var side=Math.min(img.width,img.height);
+                var sx=(img.width-side)/2,sy=(img.height-side)/2;
+                ctx.drawImage(img,sx,sy,side,side,0,0,S,S);
+                setStoryImg(canvas.toDataURL("image/jpeg",0.65));
               };
               img.src=ev.target.result;
             };
@@ -4820,53 +4932,6 @@ function MainApp({initProfile}){
           </button>
         </div>
       </div>}
-
-      {/* ── CHAT SHEET ── */}
-      {openChat&&(function(){
-        var myUid=window.__sfUid||"";
-        var initials=(openChat.name||"?").split(" ").map(function(w){return w[0];}).join("").toUpperCase().slice(0,2);
-        return(
-          <div style={{position:"fixed",inset:0,zIndex:9050,background:"#0F0F18",display:"flex",flexDirection:"column"}}>
-            {/* header */}
-            <div style={{display:"flex",alignItems:"center",gap:12,padding:"52px 16px 14px",background:"linear-gradient(180deg,#141E2E,transparent)",borderBottom:"1px solid rgba(255,255,255,0.08)"}}>
-              <div onClick={function(){setOpenChat(null);setChatMessages([]);}} style={{width:36,height:36,borderRadius:50,background:"rgba(255,255,255,0.08)",display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",fontSize:18,flexShrink:0}}>←</div>
-              <div style={{width:40,height:40,borderRadius:50,overflow:"hidden",background:C.purple+"33",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
-                {openChat.photoURL?<img src={openChat.photoURL} alt="" style={{width:"100%",height:"100%",objectFit:"cover"}}/>:<div style={{fontSize:14,fontWeight:900,color:"#fff"}}>{initials}</div>}
-              </div>
-              <div>
-                <div style={{fontSize:15,fontWeight:900,color:"#fff"}}>{openChat.name||"User"}</div>
-                <div style={{fontSize:11,color:C.green,fontWeight:600}}>● Online</div>
-              </div>
-            </div>
-            {/* messages */}
-            <div id="sf-chat-scroll" style={{flex:1,overflowY:"auto",padding:"16px 14px",display:"flex",flexDirection:"column",gap:8}}>
-              {chatMessages.length===0&&<div style={{textAlign:"center",color:C.dim,fontSize:13,marginTop:40}}>No messages yet. Say hi! 👋</div>}
-              {chatMessages.map(function(m){
-                var isMe=m.uid===myUid;
-                return(
-                  <div key={m.id} style={{display:"flex",flexDirection:"column",alignItems:isMe?"flex-end":"flex-start",gap:2}}>
-                    <div style={{maxWidth:"78%",padding:"10px 14px",borderRadius:isMe?"18px 18px 4px 18px":"18px 18px 18px 4px",background:isMe?"linear-gradient(135deg,#4CAF50,#66BB6A)":"rgba(255,255,255,0.08)",color:isMe?"#0a1a0a":"#fff",fontSize:14,lineHeight:1.4,fontWeight:isMe?600:400,wordBreak:"break-word"}}>
-                      {m.text}
-                    </div>
-                    <div style={{fontSize:9,color:C.dim,padding:"0 4px"}}>{new Date(m.at).toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"})}</div>
-                  </div>
-                );
-              })}
-            </div>
-            {/* input */}
-            <div style={{display:"flex",alignItems:"center",gap:10,padding:"12px 14px 32px",background:"linear-gradient(0deg,#141E2E,transparent)",borderTop:"1px solid rgba(255,255,255,0.06)"}}>
-              <input
-                value={chatInput}
-                onChange={function(e){setChatInput(e.target.value);}}
-                onKeyDown={function(e){if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();sendChatMsg();}}}
-                placeholder={"Message "+openChat.name+"…"}
-                style={{flex:1,background:"rgba(255,255,255,0.07)",border:"1px solid rgba(255,255,255,0.12)",borderRadius:24,padding:"12px 18px",fontSize:14,color:"#fff",outline:"none"}}
-              />
-              <button onClick={sendChatMsg} style={{width:44,height:44,borderRadius:50,border:"none",background:"linear-gradient(135deg,#4CAF50,#66BB6A)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:20,cursor:"pointer",flexShrink:0}}>➤</button>
-            </div>
-          </div>
-        );
-      })()}
 
       {/* Toast notification */}
       {toastMsg&&<div style={{position:"fixed",bottom:90,left:"50%",transform:"translateX(-50%)",zIndex:9999,background:"rgba(20,20,30,0.95)",backdropFilter:"blur(12px)",border:"1px solid rgba(255,255,255,0.15)",borderRadius:16,padding:"12px 20px",fontSize:13,fontWeight:700,color:"#fff",boxShadow:"0 8px 32px rgba(0,0,0,0.5)",whiteSpace:"nowrap",maxWidth:"90vw",textAlign:"center"}}>
