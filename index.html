@@ -1332,7 +1332,6 @@ function MainApp({initProfile}){
   const [showAddSleep,setShowAddSleep]=useState(false);
   const [showAddNutrition,setShowAddNutrition]=useState(false);
   const [showAddWeight,setShowAddWeight]=useState(false);
-  const [workoutSummary,setWorkoutSummary]=useState(null);
 
   // Modal form state — must live at top level (no useState inside IIFEs)
   const [addStepsVal,setAddStepsVal]=useState("1000");
@@ -2186,7 +2185,8 @@ function MainApp({initProfile}){
                     var estDistMap={Running:(mins*0.13).toFixed(1)+" km",Cycling:(mins*0.35).toFixed(1)+" km",Walking:(mins*0.08).toFixed(1)+" km",Swimming:(mins*0.05).toFixed(1)+" km",HIIT:"—",Yoga:"—",Strength:"—"};
                     var dist=realDist||estDistMap[workout]||"—";
                     var entry={type:workout,icon:iconMap[workout]||"dumbbell",date:"Today",duration:mins+" min",cals:burned,dist:dist,color:C.green};
-                    setWorkoutSummary({entry:entry,mins:mins,burned:burned,dist:dist});
+                    setWorkoutHistory(function(h){return [entry].concat(h);});
+                    setToast("✅ "+workout+" saved — "+mins+" min · "+burned+" kcal");
                     setWorkout(null);setWTime(0);setGpsCoords([]);setGpsDist(0);setGpsStatus("idle");setGpsPaused(false);
                   }} style={{flex:1,padding:"17px",borderRadius:50,border:"none",background:"#C0392B",color:"#fff",fontSize:16,fontWeight:800,cursor:"pointer",boxShadow:"0 4px 16px rgba(192,57,43,0.45)"}}>
                     Finish
@@ -5105,47 +5105,6 @@ function MainApp({initProfile}){
         </div>
       </div>}
 
-      {/* ── Workout Summary Modal (Task 14) ── */}
-      {workoutSummary&&(function(){
-        var ws=workoutSummary;
-        function dismiss(){
-          setWorkoutHistory(function(h){return [ws.entry].concat(h);});
-          setWorkoutSummary(null);
-        }
-        return(
-          <div style={{position:"fixed",inset:0,zIndex:300,background:"rgba(0,0,0,0.8)",backdropFilter:"blur(10px)",display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
-            <div style={{width:"100%",maxWidth:380,borderRadius:28,background:"linear-gradient(160deg,#0A1628,#0D1F2D)",border:"1px solid "+C.green+"44",overflow:"hidden",boxShadow:"0 0 60px "+C.green+"22"}}>
-              {/* Top banner */}
-              <div style={{background:"linear-gradient(135deg,"+C.green+"22,"+C.cyan+"11)",padding:"28px 24px 20px",textAlign:"center",borderBottom:"1px solid "+C.green+"22"}}>
-                <div style={{marginBottom:8,display:"flex",justifyContent:"center"}}><FIcon id={ws.entry.icon} size={52} glow/></div>
-                <div style={{fontSize:11,color:C.green,fontWeight:700,letterSpacing:1,marginBottom:4}}>WORKOUT COMPLETE</div>
-                <div style={{fontSize:22,fontWeight:900,color:C.text}}>{ws.entry.type}</div>
-              </div>
-              {/* Stats grid */}
-              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",padding:"20px 16px",gap:1}}>
-                {[{icon:"chart",l:"Duration",v:ws.mins+" min"},{icon:"fire",l:"Calories",v:ws.burned+" kcal"},{icon:"target",l:"Distance",v:ws.dist&&ws.dist!=="—"?ws.dist:"—"}].map(function(s,i){
-                  return <div key={i} style={{textAlign:"center",padding:"12px 8px"}}>
-                    <div style={{marginBottom:4,display:"flex",justifyContent:"center"}}><FIcon id={s.icon} size={22}/></div>
-                    <div style={{fontSize:20,fontWeight:900,color:C.green}}>{s.v}</div>
-                    <div style={{fontSize:10,color:C.muted,marginTop:2}}>{s.l}</div>
-                  </div>;
-                })}
-              </div>
-              {/* Motivation quote */}
-              <div style={{margin:"0 20px",borderRadius:16,background:C.green+"10",border:"1px solid "+C.green+"22",padding:"12px 16px",textAlign:"center",marginBottom:20}}>
-                <div style={{fontSize:12,color:C.green,fontWeight:600,fontStyle:"italic"}}>
-                  {ws.mins>=30?"Incredible effort — you crushed it! 💪":ws.mins>=15?"Great session — every minute counts! ⚡":"Quick session is still progress! Keep going! 🔥"}
-                </div>
-              </div>
-              {/* Buttons */}
-              <div style={{padding:"0 20px 28px",display:"flex",gap:10}}>
-                <button onClick={function(){setWorkoutSummary(null);}} style={{flex:1,padding:"14px",borderRadius:16,border:"1px solid rgba(255,255,255,0.1)",background:"rgba(255,255,255,0.05)",color:C.muted,fontSize:14,fontWeight:700,cursor:"pointer"}}>🗑 Discard</button>
-                <button onClick={dismiss} style={{flex:2,padding:"14px",borderRadius:16,border:"none",background:G.hero,color:"#0A3D2B",fontSize:14,fontWeight:900,cursor:"pointer"}}>💾 Save Workout</button>
-              </div>
-            </div>
-          </div>
-        );
-      })()}
 
       {/* ── Add Steps Modal ── */}
       {showAddSteps&&<div onClick={function(){setShowAddSteps(false);}} style={{position:"fixed",inset:0,zIndex:300,background:"rgba(0,0,0,0.75)",backdropFilter:"blur(8px)",display:"flex",alignItems:"flex-end",justifyContent:"center"}}>
