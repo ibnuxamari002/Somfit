@@ -3061,46 +3061,6 @@ function MainApp({initProfile}){
         {/* SOCIAL TAB */}
         {tab==="social"&&<div style={{display:"flex",flexDirection:"column",gap:14}}>
 
-          {/* ── STORIES ROW ── */}
-          <div style={{overflowX:"auto",paddingBottom:4}}>
-            <div style={{display:"flex",gap:12,paddingBottom:4,minWidth:"max-content"}}>
-              {/* Add my story */}
-              <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:6,cursor:"pointer"}} onClick={function(){setShowAddStory(true);}}>
-                <div style={{position:"relative",width:62,height:62}}>
-                  <div style={{width:62,height:62,borderRadius:50,border:"2px dashed "+C.blue,background:C.card2,display:"flex",alignItems:"center",justifyContent:"center",overflow:"hidden"}}>
-                    {myStory
-                      ?<img src={myStory.img} alt="" style={{width:"100%",height:"100%",objectFit:"cover"}}/>
-                      :(profile.photoURL
-                        ?<img src={profile.photoURL} alt="" style={{width:"100%",height:"100%",objectFit:"cover"}}/>
-                        :<div style={{fontSize:22}}>📷</div>)
-                    }
-                  </div>
-                  <div style={{position:"absolute",bottom:0,right:0,width:20,height:20,borderRadius:50,background:C.blue,border:"2px solid #0F0F18",display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,fontWeight:900,color:"#fff"}}>+</div>
-                </div>
-                <div style={{fontSize:10,color:C.muted,fontWeight:600,textAlign:"center",maxWidth:62,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>My Story</div>
-              </div>
-              {/* Friends' stories */}
-              {fsStories.map(function(s){
-                var initials=(s.name||"?").split(" ").map(function(w){return w[0];}).join("").toUpperCase().slice(0,2);
-                return(
-                  <div key={s.id} style={{display:"flex",flexDirection:"column",alignItems:"center",gap:6,cursor:"pointer"}} onClick={function(){setViewStory(s);}}>
-                    <div style={{width:62,height:62,borderRadius:50,padding:2,background:"linear-gradient(135deg,"+C.pink+","+C.purple+","+C.blue+")",flexShrink:0}}>
-                      <div style={{width:"100%",height:"100%",borderRadius:50,border:"2px solid #0F0F18",overflow:"hidden",background:C.card2,display:"flex",alignItems:"center",justifyContent:"center"}}>
-                        {s.img
-                          ?<img src={s.img} alt="" style={{width:"100%",height:"100%",objectFit:"cover"}}/>
-                          :(s.photoURL
-                            ?<img src={s.photoURL} alt="" style={{width:"100%",height:"100%",objectFit:"cover"}}/>
-                            :<div style={{fontSize:16,fontWeight:900,color:"#fff"}}>{initials}</div>)
-                        }
-                      </div>
-                    </div>
-                    <div style={{fontSize:10,color:C.text,fontWeight:600,textAlign:"center",maxWidth:62,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{(s.name||"?").split(" ")[0]}</div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-
           {/* Challenge Invitations */}
           {fsInvites.length>0&&<div style={{borderRadius:20,background:"linear-gradient(135deg,#1a2a3a,#0d1f2d)",border:"2px solid #FF9800AA",padding:"16px 16px 12px",boxShadow:"0 0 24px #FF980033"}}>
             <div style={{fontSize:11,color:"#FF9800",fontWeight:800,letterSpacing:1.5,marginBottom:12}}>🔔 CHALLENGE INVITATIONS</div>
