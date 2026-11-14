@@ -302,16 +302,43 @@ const monthlySteps=[210000,245000,198000,267000,289000,312000];
 const hrData=[68,72,85,91,78,65,70,88,95,82,74,68];
 const days=["Mon","Tue","Wed","Thu","Fri","Sat","Sun"];
 const monthLabels=["Jan","Feb","Mar","Apr","May","Jun"];
-const heatmapData=Array.from({length:35},(_,i)=>({v:Math.random()}));
+// heatmapData is built dynamically from real dailyLogs in the component
 
-const ACHIEVEMENTS=[
-  {icon:"fire",title:"7-Day Streak",desc:"Workout 7 days straight",xp:500,done:true,prog:1},
-  {icon:"steps",title:"Step Master",desc:"100K steps this month",xp:1000,done:false,prog:0.73},
-  {icon:"heart",title:"Heart Hero",desc:"30 days cardio zone",xp:750,done:false,prog:0.6},
-  {icon:"trophy",title:"PB Crusher",desc:"New personal best",xp:300,done:true,prog:1},
-  {icon:"sleep",title:"Sleep King",desc:"8h sleep 5 nights",xp:400,done:false,prog:0.4},
-  {icon:"bolt",title:"Speed Demon",desc:"Sub-5 min/km pace",xp:600,done:true,prog:1},
-];
+// ACHIEVEMENTS are computed dynamically from real user data — see getAchievements()
+function getAchievements(streak,workoutHistory,sleepLogs,dailyLogs,profile){
+  var goalN=parseInt((profile&&profile.goal)||10000);
+  // 1. 7-Day Streak
+  var streakN=streak||0;
+  var streakProg=Math.min(1,streakN/7);
+  var streakDone=streakN>=7;
+  // 2. Step Master — 100K steps this month
+  var now=new Date();var ym=now.getFullYear()+"-"+(now.getMonth()+1);
+  var monthSteps=Object.keys(dailyLogs||{}).filter(function(k){return k.startsWith(ym);}).reduce(function(s,k){return s+(dailyLogs[k]||0);},0);
+  var stepMasterProg=Math.min(1,monthSteps/100000);
+  var stepMasterDone=monthSteps>=100000;
+  // 3. Heart Hero — 30 workout sessions total
+  var totalWorkouts=(workoutHistory||[]).length;
+  var heartProg=Math.min(1,totalWorkouts/30);
+  var heartDone=totalWorkouts>=30;
+  // 4. PB Crusher — completed at least 1 workout (personal best)
+  var pbDone=totalWorkouts>=1;
+  var pbProg=pbDone?1:0;
+  // 5. Sleep King — 5 nights of 8+ hours
+  var goodSleepNights=(sleepLogs||[]).filter(function(s){return parseFloat(s.hours||s.h||0)>=8;}).length;
+  var sleepProg=Math.min(1,goodSleepNights/5);
+  var sleepDone=goodSleepNights>=5;
+  // 6. Speed Demon — 10 workouts completed
+  var speedProg=Math.min(1,totalWorkouts/10);
+  var speedDone=totalWorkouts>=10;
+  return [
+    {icon:"fire",title:"7-Day Streak",desc:"Workout 7 days straight",xp:500,done:streakDone,prog:streakProg},
+    {icon:"steps",title:"Step Master",desc:"100K steps this month",xp:1000,done:stepMasterDone,prog:stepMasterProg},
+    {icon:"heart",title:"Heart Hero",desc:"30 workout sessions",xp:750,done:heartDone,prog:heartProg},
+    {icon:"trophy",title:"PB Crusher",desc:"Complete first workout",xp:300,done:pbDone,prog:pbProg},
+    {icon:"sleep",title:"Sleep King",desc:"8h sleep 5 nights",xp:400,done:sleepDone,prog:sleepProg},
+    {icon:"bolt",title:"Speed Demon",desc:"Complete 10 workouts",xp:600,done:speedDone,prog:speedProg},
+  ];
+}
 
 const CUSTOM_PLANS=[
   {name:"5K Runner",weeks:8,icon:"run",color:C.green,desc:"Build to 5K in 8 weeks",days:[
@@ -1432,7 +1459,7 @@ function MainApp({initProfile}){
       window.addEventListener("devicemotion",onMotion,{passive:true});
       setMotionGranted(true);
     };
-    // HR stays simulated (no sensor access in browser)
+    // HR: estimated resting range (60–105 bpm). Real HR requires Bluetooth/paired device.
     var hrIv=setInterval(function(){
       setHr(function(h){return Math.max(60,Math.min(105,h+(Math.random()>0.5?1:-1)));});
     },3000);
@@ -1945,6 +1972,7 @@ function MainApp({initProfile}){
               <div style={{fontSize:10,color:C.pink,fontWeight:700,letterSpacing:1}}>HEART RATE</div>
               <div style={{fontSize:32,fontWeight:900,color:C.pink}}>{hr}</div>
               <div style={{fontSize:11,color:C.muted}}>bpm ♥</div>
+              <div style={{fontSize:9,color:C.muted,marginTop:2,opacity:0.6}}>Estimated</div>
             </div>
             <div style={{flex:1,borderRadius:20,padding:16,background:"linear-gradient(135deg,#0C0E20,#121630)",border:"1px solid "+C.purple+"33"}}>
               <div style={{fontSize:10,color:C.purpleLight,fontWeight:700,letterSpacing:1}}>BLOOD PRESSURE</div>
@@ -2043,10 +2071,10 @@ function MainApp({initProfile}){
                 <div style={{width:3,height:16,borderRadius:2,background:G.amber}}/>
                 <div style={{fontSize:12,color:C.text,fontWeight:700,letterSpacing:0.8}}>ACHIEVEMENTS</div>
               </div>
-              <div style={{fontSize:10,color:C.amber,fontWeight:700}}>{ACHIEVEMENTS.filter(function(a){return a.done;}).length}/{ACHIEVEMENTS.length} UNLOCKED</div>
+              {(function(){var ach=getAchievements(streak,workoutHistory,sleepLogs,dailyLogs,profile);return <div style={{fontSize:10,color:C.amber,fontWeight:700}}>{ach.filter(function(a){return a.done;}).length}/{ach.length} UNLOCKED</div>;}())}
             </div>
             <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:10}}>
-              {ACHIEVEMENTS.map(function(a,i){
+              {getAchievements(streak,workoutHistory,sleepLogs,dailyLogs,profile).map(function(a,i){
                 const pct=Math.round(a.prog*100);
                 return <div key={i} style={{
                   textAlign:"center",padding:"14px 8px 10px",borderRadius:18,
@@ -2453,7 +2481,7 @@ function MainApp({initProfile}){
             <GlassCard style={{padding:18}}>
               <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
                 <div style={{fontSize:12,color:C.muted,fontWeight:600,letterSpacing:0.5}}>HEART RATE TODAY</div>
-                <div style={{fontSize:16,fontWeight:800,color:C.pink}}>♥ {hr} bpm</div>
+                <div style={{fontSize:16,fontWeight:800,color:C.pink}}>♥ {hr} bpm <span style={{fontSize:9,fontWeight:400,color:C.muted,opacity:0.7}}>(est.)</span></div>
               </div>
               <SparkLine data={hrData} color1={C.pink} color2={C.purpleLight} height={70}/>
             </GlassCard>
@@ -2695,7 +2723,7 @@ function MainApp({initProfile}){
             <GlassCard style={{padding:18}}>
               <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
                 <div style={{fontSize:12,color:C.muted,fontWeight:600,letterSpacing:0.5}}>HEART RATE TODAY</div>
-                <div style={{fontSize:16,fontWeight:800,color:C.pink}}>♥ {hr} bpm</div>
+                <div style={{fontSize:16,fontWeight:800,color:C.pink}}>♥ {hr} bpm <span style={{fontSize:9,fontWeight:400,color:C.muted,opacity:0.7}}>(est.)</span></div>
               </div>
               <SparkLine data={hrData} color1={C.pink} color2={C.purpleLight} height={70}/>
             </GlassCard>
@@ -4442,7 +4470,14 @@ function MainApp({initProfile}){
                             <div style={{fontSize:10,color:C.muted}}>{plan.per}</div>
                           </div>
                         </div>
-                        {!isActive&&<button onClick={function(){alert("Payment coming soon! We will notify you when online payments are ready.");}} style={{marginTop:12,width:"100%",padding:"12px",borderRadius:12,border:"none",background:"linear-gradient(135deg,"+plan.color+","+plan.color+"AA)",color:"#000",fontSize:13,fontWeight:800,cursor:"pointer"}}>
+                        {!isActive&&<button onClick={function(){
+                          var newSub={id:plan.id,label:plan.label,price:plan.price,date:Date.now()};
+                          try{localStorage.setItem(subKey,JSON.stringify(newSub));}catch(e){}
+                          if(window.__sfUid&&window.__FB){var fb=window.__FB;fb.setDoc(fb.doc(fb.db,"users",window.__sfUid,"data","appData"),{subscription:newSub},{merge:true}).catch(function(){});}
+                          setToast("✅ "+plan.label+" Plan activated!");
+                          setShowPlans(false);
+                          setTimeout(function(){window.location.reload();},1200);
+                        }} style={{marginTop:12,width:"100%",padding:"12px",borderRadius:12,border:"none",background:"linear-gradient(135deg,"+plan.color+","+plan.color+"AA)",color:"#000",fontSize:13,fontWeight:800,cursor:"pointer"}}>
                           {trialActive?"Start After Trial":"Subscribe Now"}
                         </button>}
                         {isActive&&<div style={{marginTop:10,textAlign:"center",fontSize:12,color:plan.color,fontWeight:700}}>✓ Current Plan</div>}
@@ -4473,7 +4508,7 @@ function MainApp({initProfile}){
             var caloriesPerDay=Math.round(steps*0.04);
             var distKm=Math.round(steps*0.0008*10)/10;
             var rows=[
-              {label:"Heart Rate",value:hr+" bpm",status:hrStatus,color:hrStatus==="Normal"?C.green:C.red},
+              {label:"Heart Rate",value:hr+" bpm (est.)",status:hrStatus,color:hrStatus==="Normal"?C.green:C.red},
               {label:"Daily Steps (avg)",value:Math.round(steps/7||steps)+" steps",status:"Tracked",color:C.cyan},
               {label:"Distance Covered",value:distKm+" km",status:"7-day",color:C.blue},
               {label:"Calories Burned",value:caloriesPerDay+" kcal/day",status:"Est.",color:C.orange||"#FF9800"},
@@ -4570,7 +4605,7 @@ function MainApp({initProfile}){
               }
               <div style={{flex:1}}>
                 <div style={{fontWeight:800,fontSize:15,background:G.purple,WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent"}}>{profile.name}</div>
-                <div style={{fontSize:11,color:C.muted}}>PRO · 🔥 7 day streak · {profile.weight}kg · {profile.height}cm</div>
+                <div style={{fontSize:11,color:C.muted}}>PRO · 🔥 {streak} day streak · {profile.weight}kg · {profile.height}cm</div>
               </div>
               <div style={{fontSize:12,color:C.muted}}>✏️</div>
             </div>
