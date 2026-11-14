@@ -255,6 +255,48 @@ const G={green:"linear-gradient(135deg,#00F5A0,#00C880)",
   hero:"linear-gradient(135deg,#00F5A0 0%,#448AFF 100%)",
   card:"linear-gradient(145deg,#1976D2 0%,#1E88E5 100%)"};
 
+// ── Premium SVG Icon component ──
+// Usage: <FIcon id="fire" size={32}/> or <FIcon id="fire" size={32} glow/>
+const FICONS={
+  fire:{grad:["#FF6B35","#FF0040"],path:"M12 2c0 0-4 4-4 8a4 4 0 008 0c0-1.5-.5-2.9-1.4-4C14 7.5 13 9 12 9c0 0 1-3-1-5-1 2-2 2.5-2 4a2 2 0 004 0c0-1.5-.8-2.5-1-4z"},
+  steps:{grad:["#00F5A0","#00C880"],path:"M13.5 5.5c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zM9.8 8.9L7 23h2.1l1.8-8 2.1 2v6h2v-7.5l-2.1-2 .6-3C14.8 12 16.8 13 19 13v-2c-1.9 0-3.5-1-4.3-2.4l-1-1.6c-.4-.6-1-1-1.7-1-.3 0-.5.1-.8.1L6 8.3V13h2V9.6l1.8-.7"},
+  heart:{grad:["#FF4D6D","#C9184A"],path:"M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"},
+  trophy:{grad:["#FFD700","#FF8C00"],path:"M19 5h-2V3H7v2H5c-1.1 0-2 .9-2 2v1c0 2.55 1.92 4.63 4.39 4.94.63 1.5 1.98 2.63 3.61 2.96V19H7v2h10v-2h-4v-3.1c1.63-.33 2.98-1.46 3.61-2.96C19.08 12.63 21 10.55 21 8V7c0-1.1-.9-2-2-2zM5 8V7h2v3.82C5.84 10.4 5 9.3 5 8zm14 0c0 1.3-.84 2.4-2 2.82V7h2v1z"},
+  moon:{grad:["#A78BFA","#7C3AED"],path:"M12 3c-4.97 0-9 4.03-9 9s4.03 9 9 9 9-4.03 9-9c0-.46-.04-.92-.1-1.36-.98 1.37-2.58 2.26-4.4 2.26-2.98 0-5.4-2.42-5.4-5.4 0-1.81.89-3.42 2.26-4.4-.44-.06-.9-.1-1.36-.1z"},
+  bolt:{grad:["#FACC15","#F97316"],path:"M13 2L4.09 13H11L10 22L19.91 11H13L13 2z"},
+  run:{grad:["#34D399","#059669"],path:"M13.5 5.5c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zM5.84 11.42l-1.84.38V15h2v-2.07l2.69-.56 1.08 2.14L13 16.19V21h2v-5.81l-3.74-1.95-.95-1.86 1.69-3.44C13.4 10.3 15.07 11 17 11h1V9h-1c-1.26 0-2.37-.62-3.08-1.56L12.76 5.9C12.4 5.34 11.74 5 11 5c-.32 0-.59.07-.85.18L5 7.5V13h1.84l-1-1.58zM5 7.5l3-1.09"},
+  muscle:{grad:["#EC4899","#9333EA"],path:"M20.57 14.86L22 13.43 20.57 12 17 15.57 8.43 7 12 3.43 10.57 2 9.14 3.43 7.71 2 5.57 4.14 4.14 2.71 2.71 4.14l1.43 1.43L2 7.71l1.43 1.43L2 10.57 3.43 12 7 8.43 15.57 17 12 20.57 13.43 22l1.43-1.43L16.29 22l2.14-2.14 1.43 1.43 1.43-1.43-1.43-1.43L22 16.29z"},
+  bike:{grad:["#38BDF8","#0284C7"],path:"M15.5 5.5c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zM5 12c-2.8 0-5 2.2-5 5s2.2 5 5 5 5-2.2 5-5-2.2-5-5-5zm0 8.5c-1.9 0-3.5-1.6-3.5-3.5S3.1 13.5 5 13.5s3.5 1.6 3.5 3.5S6.9 20.5 5 20.5zm5.8-10l2.4-2.4.8.8c1.3 1.3 3 2.1 5.1 2.1V11c-1.5 0-2.7-.6-3.6-1.5l-1.9-1.9c-.5-.4-1-.6-1.6-.6s-1.1.2-1.4.6L7.8 10.4c-.4.4-.6.9-.6 1.4 0 .6.2 1.1.6 1.4L11 16v5h2v-6l-2.2-2.5 2-2zM19 12c-2.8 0-5 2.2-5 5s2.2 5 5 5 5-2.2 5-5-2.2-5-5-5zm0 8.5c-1.9 0-3.5-1.6-3.5-3.5s1.6-3.5 3.5-3.5 3.5 1.6 3.5 3.5-1.6 3.5-3.5 3.5z"},
+  swim:{grad:["#67E8F9","#0E7490"],path:"M22 17.5c-1.2 0-1.8.5-2.4.9-.5.4-1 .8-2.1.8s-1.6-.4-2.1-.8c-.6-.5-1.2-.9-2.4-.9s-1.8.5-2.4.9c-.5.4-1 .8-2.1.8s-1.6-.4-2.1-.8C6.3 18 5.6 17.5 4.5 17.5c-1.2 0-1.8.5-2.4.9-.5.4-1 .8-2.1.8v2c1.2 0 1.8-.5 2.4-.9.5-.4 1-.8 2.1-.8s1.6.4 2.1.8c.6.5 1.2.9 2.4.9s1.8-.5 2.4-.9c.5-.4 1-.8 2.1-.8s1.6.4 2.1.8c.6.5 1.2.9 2.4.9s1.8-.5 2.4-.9c.5-.4 1-.8 2.1-.8v-2c-1.2 0-1.8.5-2.5.9zM13.5 5.5c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm-5 7.9l1.9-2.1-.9-.8C8.4 9.5 7.3 9 6 9H2v2h4c.5 0 .9.2 1.3.5l1.4 1.3-2.4 2.7.7.6C7.6 16.6 8.9 17 10 17c1.5 0 2.9-.5 4-1.4l-1.6-1.4c-.6.5-1.4.8-2.4.8l-1.5-.6z"},
+  medal:{grad:["#FCD34D","#F59E0B"],path:"M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67V7z"},
+  crown:{grad:["#FDE68A","#F59E0B"],path:"M5 16L3 5l5.5 5L12 4l3.5 6L21 5l-2 11H5zm14 3c0 .6-.4 1-1 1H6c-.6 0-1-.4-1-1v-1h14v1z"},
+  walk:{grad:["#86EFAC","#16A34A"],path:"M13.5 5.5c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zM9.8 8.9L7 23h2.1l1.8-8 2.1 2v6h2v-7.5l-2.1-2 .6-3C14.8 12 16.8 13 19 13v-2c-1.9 0-3.5-1-4.3-2.4l-1-1.6c-.4-.6-1-1-1.7-1-.3 0-.5.1-.8.1L6 8.3V13h2V9.6l1.8-.7"},
+  star:{grad:["#FDE68A","#F59E0B"],path:"M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"},
+  dumbbell:{grad:["#C084FC","#7C3AED"],path:"M20.57 14.86L22 13.43 20.57 12 17 15.57 8.43 7 12 3.43 10.57 2 9.14 3.43 7.71 2 5.57 4.14 4.14 2.71 2.71 4.14l1.43 1.43L2 7.71l1.43 1.43L2 10.57 3.43 12 7 8.43 15.57 17 12 20.57 13.43 22l1.43-1.43L16.29 22l2.14-2.14 1.43 1.43 1.43-1.43-1.43-1.43L22 16.29z"},
+  sleep:{grad:["#818CF8","#4F46E5"],path:"M12 3c-4.97 0-9 4.03-9 9s4.03 9 9 9 9-4.03 9-9c0-.46-.04-.92-.1-1.36-.98 1.37-2.58 2.26-4.4 2.26-2.98 0-5.4-2.42-5.4-5.4 0-1.81.89-3.42 2.26-4.4-.44-.06-.9-.1-1.36-.1z"},
+  target:{grad:["#FB923C","#EA580C"],path:"M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm0-12c-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4-1.79-4-4-4zm0 6c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2z"},
+  chart:{grad:["#34D399","#0D9488"],path:"M4 20h4V10H4v10zm6 0h4V4h-4v16zm6 0h4v-7h-4v7z"},
+  watch:{grad:["#60A5FA","#3B82F6"],path:"M20 12c0-2.54-1.19-4.81-3.04-6.27L16 0H8l-.95 5.73C5.19 7.19 4 9.45 4 12s1.19 4.81 3.05 6.27L8 24h8l.96-5.73C18.81 16.81 20 14.54 20 12zM12 18c-3.31 0-6-2.69-6-6s2.69-6 6-6 6 2.69 6 6-2.69 6-6 6z"},
+  egg:{grad:["#FDE68A","#F59E0B"],path:"M18.06 22.99h1.66c.84 0 1.53-.64 1.63-1.46L23 5.05h-5V1h-1.97v4.05h-4.97l.3 2.34c1.71.47 3.31 1.32 4.27 2.26 1.44 1.42 2.43 2.89 2.43 5.29v8.05zM1 21.99V21h15.03v.99c0 .55-.45 1-1.01 1H2.01c-.56 0-1.01-.45-1.01-1zm15.03-7c0-8.17-15.03-8.17-15.03 0h15.03z"},
+};
+
+function FIcon({id,size,glow,style}){
+  var ic=FICONS[id]||FICONS.star;
+  var s=size||24;
+  var uid="fi_"+id+"_"+s;
+  return(
+    <svg width={s} height={s} viewBox="0 0 24 24" fill="none" style={Object.assign({flexShrink:0,filter:glow?"drop-shadow(0 0 "+(s/6)+"px "+ic.grad[0]+"99)":"none"},style||{})}>
+      <defs>
+        <linearGradient id={uid} x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stopColor={ic.grad[0]}/>
+          <stop offset="100%" stopColor={ic.grad[1]}/>
+        </linearGradient>
+      </defs>
+      <path d={ic.path} fill={"url(#"+uid+")"} fillRule="evenodd"/>
+    </svg>
+  );
+}
+
 const stepData=[7200,9400,11200,6800,10500,13100,8900];
 const monthlySteps=[210000,245000,198000,267000,289000,312000];
 const hrData=[68,72,85,91,78,65,70,88,95,82,74,68];
@@ -263,28 +305,28 @@ const monthLabels=["Jan","Feb","Mar","Apr","May","Jun"];
 const heatmapData=Array.from({length:35},(_,i)=>({v:Math.random()}));
 
 const ACHIEVEMENTS=[
-  {icon:"🔥",title:"7-Day Streak",desc:"Workout 7 days straight",xp:500,done:true,prog:1},
-  {icon:"👣",title:"Step Master",desc:"100K steps this month",xp:1000,done:false,prog:0.73},
-  {icon:"❤️",title:"Heart Hero",desc:"30 days cardio zone",xp:750,done:false,prog:0.6},
-  {icon:"🏆",title:"PB Crusher",desc:"New personal best",xp:300,done:true,prog:1},
-  {icon:"🌙",title:"Sleep King",desc:"8h sleep 5 nights",xp:400,done:false,prog:0.4},
-  {icon:"⚡",title:"Speed Demon",desc:"Sub-5 min/km pace",xp:600,done:true,prog:1},
+  {icon:"fire",title:"7-Day Streak",desc:"Workout 7 days straight",xp:500,done:true,prog:1},
+  {icon:"steps",title:"Step Master",desc:"100K steps this month",xp:1000,done:false,prog:0.73},
+  {icon:"heart",title:"Heart Hero",desc:"30 days cardio zone",xp:750,done:false,prog:0.6},
+  {icon:"trophy",title:"PB Crusher",desc:"New personal best",xp:300,done:true,prog:1},
+  {icon:"sleep",title:"Sleep King",desc:"8h sleep 5 nights",xp:400,done:false,prog:0.4},
+  {icon:"bolt",title:"Speed Demon",desc:"Sub-5 min/km pace",xp:600,done:true,prog:1},
 ];
 
 const CUSTOM_PLANS=[
-  {name:"5K Runner",weeks:8,icon:"🏃",color:C.green,desc:"Build to 5K in 8 weeks",days:[
+  {name:"5K Runner",weeks:8,icon:"run",color:C.green,desc:"Build to 5K in 8 weeks",days:[
     {d:"Mon",t:"Easy Run 20min",done:true},{d:"Wed",t:"Intervals 6×400m",done:true},
     {d:"Fri",t:"Long Run 30min",done:false},{d:"Sun",t:"Rest & Stretch",done:false}]},
-  {name:"HIIT Shredder",weeks:4,icon:"⚡",color:C.pink,desc:"High intensity fat burn",days:[
+  {name:"HIIT Shredder",weeks:4,icon:"bolt",color:C.pink,desc:"High intensity fat burn",days:[
     {d:"Tue",t:"Tabata 20min",done:false},{d:"Thu",t:"Circuit Training",done:false},
     {d:"Sat",t:"AMRAP 30min",done:false}]},
-  {name:"Strength Base",weeks:12,icon:"💪",color:C.purple,desc:"Build foundational strength",days:[
+  {name:"Strength Base",weeks:12,icon:"muscle",color:C.purple,desc:"Build foundational strength",days:[
     {d:"Mon",t:"Squats & Lunges",done:false},{d:"Wed",t:"Push & Pull",done:false},
     {d:"Fri",t:"Core & Stability",done:false}]},
 ];
 
 const CHALLENGES=[
-  {title:"Walking Challenge",icon:"🚶",color:"#4CAF50",color2:"#1B5E20",bg:"linear-gradient(160deg,#1B5E20,#2E7D32,#388E3C)",participants:21,ends:"Nov 1–28",daysLeft:19,goal:"280,000 steps",unit:"steps",mySteps:67420,
+  {title:"Walking Challenge",icon:"walk",color:"#4CAF50",color2:"#1B5E20",bg:"linear-gradient(160deg,#1B5E20,#2E7D32,#388E3C)",participants:21,ends:"Nov 1–28",daysLeft:19,goal:"280,000 steps",unit:"steps",mySteps:67420,
    leaderboard:[
      {rank:1,name:"D*******",time:"10:04",steps:155338,avatar:"🧑"},
      {rank:2,name:"W***",time:"10:15",steps:124553,avatar:"👩"},
@@ -294,7 +336,7 @@ const CHALLENGES=[
    ],
    badge:"🏆",aiMsg:"You're in 4th place! Walk 47,594 more steps to reach 3rd place.",
    scene:"🌿🌳🌄"},
-  {title:"Running Challenge",icon:"🏃",color:"#FF6D00",color2:"#E65100",bg:"linear-gradient(160deg,#E65100,#F57C00,#FF8F00)",participants:18,ends:"Nov 1–30",daysLeft:21,goal:"100 km",unit:"km",mySteps:34.2,
+  {title:"Running Challenge",icon:"run",color:"#FF6D00",color2:"#E65100",bg:"linear-gradient(160deg,#E65100,#F57C00,#FF8F00)",participants:18,ends:"Nov 1–30",daysLeft:21,goal:"100 km",unit:"km",mySteps:34.2,
    leaderboard:[
      {rank:1,name:"K***",time:"06:12",steps:88.4,avatar:"🧑"},
      {rank:2,name:"S***",time:"06:45",steps:71.2,avatar:"👩"},
@@ -304,7 +346,7 @@ const CHALLENGES=[
    ],
    badge:"🥉",aiMsg:"You're 3rd! Run 37.2 km more to stay ahead of 4th place.",
    scene:"🏙️🌅🏃"},
-  {title:"30-Day HIIT Blast",icon:"⚡",color:"#E91E63",color2:"#880E4F",bg:"linear-gradient(160deg,#880E4F,#C2185B,#E91E63)",participants:34,ends:"Nov 1–30",daysLeft:21,goal:"30 sessions",unit:"sessions",mySteps:12,
+  {title:"30-Day HIIT Blast",icon:"bolt",color:"#E91E63",color2:"#880E4F",bg:"linear-gradient(160deg,#880E4F,#C2185B,#E91E63)",participants:34,ends:"Nov 1–30",daysLeft:21,goal:"30 sessions",unit:"sessions",mySteps:12,
    leaderboard:[
      {rank:1,name:"F***",time:"07:00",steps:28,avatar:"👩"},
      {rank:2,name:"A***",time:"07:15",steps:25,avatar:"🧑"},
@@ -324,18 +366,18 @@ const CHALLENGE_AWARDS=[
 ];
 
 const DEVICES=[
-  {name:"Apple Watch Ultra 2",icon:"⌚",color:C.blue},
-  {name:"Apple Watch Series 9",icon:"⌚",color:"#A8C5DA"},
-  {name:"Samsung Galaxy Watch 6",icon:"🔵",color:"#1428A0"},
-  {name:"Garmin Forerunner 965",icon:"🟢",color:C.green},
-  {name:"Garmin Venu 3",icon:"🏃",color:"#00A6A0"},
-  {name:"Fitbit Sense 2",icon:"🩺",color:"#00B0B9"},
-  {name:"Polar H10 (HR Belt)",icon:"❤️",color:C.pink},
-  {name:"Polar Vantage V3",icon:"🔴",color:"#D0021B"},
-  {name:"Oura Ring Gen 3",icon:"💍",color:C.purple},
-  {name:"Whoop 4.0",icon:"⚡",color:C.amber},
-  {name:"Suunto Race",icon:"🏔️",color:"#E8E8E8"},
-  {name:"Coros Pace 3",icon:"🌐",color:"#FF6B35"},
+  {name:"Apple Watch Ultra 2",icon:"watch",color:C.blue},
+  {name:"Apple Watch Series 9",icon:"watch",color:"#A8C5DA"},
+  {name:"Samsung Galaxy Watch 6",icon:"watch",color:"#1428A0"},
+  {name:"Garmin Forerunner 965",icon:"run",color:C.green},
+  {name:"Garmin Venu 3",icon:"run",color:"#00A6A0"},
+  {name:"Fitbit Sense 2",icon:"heart",color:"#00B0B9"},
+  {name:"Polar H10 (HR Belt)",icon:"heart",color:C.pink},
+  {name:"Polar Vantage V3",icon:"target",color:"#D0021B"},
+  {name:"Oura Ring Gen 3",icon:"sleep",color:C.purple},
+  {name:"Whoop 4.0",icon:"bolt",color:C.amber},
+  {name:"Suunto Race",icon:"chart",color:"#E8E8E8"},
+  {name:"Coros Pace 3",icon:"run",color:"#FF6B35"},
 ];
 
 const POPULAR_ROUTES=[
@@ -591,8 +633,8 @@ function ProfileScreen({onDone}){
   const [stepGoal,setStepGoal]=useState("10000");
   const avatars=["🏃","🧘","💪","🚴","🏊","⚡","🦸","🎯","🔥","🏆"];
   const goals=[
-    {id:"lose",icon:"⚖️",label:"Lose Weight"},{id:"endurance",icon:"🏃",label:"Endurance"},
-    {id:"active",icon:"💪",label:"Stay Active"},{id:"strength",icon:"🦾",label:"Build Strength"},
+    {id:"lose",icon:"target",label:"Lose Weight"},{id:"endurance",icon:"run",label:"Endurance"},
+    {id:"active",icon:"bolt",label:"Stay Active"},{id:"strength",icon:"muscle",label:"Build Strength"},
   ];
   function handleFinish(){
     onDone({name:name.trim()||"Athlete",avatar:avatar,goal:stepGoal});
@@ -669,7 +711,7 @@ function ProfileScreen({onDone}){
                 background:active?C.green+"12":C.card,
                 cursor:"pointer",textAlign:"center",transition:"all 0.2s"
               }}>
-                <div style={{fontSize:32,marginBottom:8}}>{g.icon}</div>
+                <div style={{marginBottom:8,display:"flex",justifyContent:"center"}}><FIcon id={g.icon} size={32} glow={active}/></div>
                 <div style={{fontSize:13,fontWeight:700,color:active?C.green:C.text}}>{g.label}</div>
               </button>;
             })}
@@ -693,10 +735,10 @@ function ProfileScreen({onDone}){
 // ── Permissions ──
 function PermissionsScreen({onDone}){
   const perms=[
-    {icon:"🏃",l:"Motion & Fitness",desc:"Step count, workouts, activity rings",c:C.green},
-    {icon:"❤️",l:"Heart Rate",desc:"Real-time BPM and cardio zones",c:C.pink},
-    {icon:"📍",l:"Location (GPS)",desc:"Route tracking and map features",c:C.cyan},
-    {icon:"📱",l:"Notifications",desc:"Workout reminders and goal alerts",c:C.amber}
+    {icon:"run",l:"Motion & Fitness",desc:"Step count, workouts, activity rings",c:C.green},
+    {icon:"heart",l:"Heart Rate",desc:"Real-time BPM and cardio zones",c:C.pink},
+    {icon:"target",l:"Location (GPS)",desc:"Route tracking and map features",c:C.cyan},
+    {icon:"bolt",l:"Notifications",desc:"Workout reminders and goal alerts",c:C.amber}
   ];
   const [granted,setGranted]=useState([false,false,false,false]);
   const allGranted=granted.every(function(g){return g;});
@@ -741,10 +783,10 @@ function PermissionsScreen({onDone}){
                 background:on?p.c+"22":"#1565C0",
                 border:"1px solid "+(on?p.c+"44":C.border),
                 display:"flex",alignItems:"center",justifyContent:"center",
-                fontSize:24,flexShrink:0,
+                flexShrink:0,
                 boxShadow:on?"0 0 12px "+p.c+"44":"none",
                 transition:"all 0.2s"
-              }}>{p.icon}</div>
+              }}><FIcon id={p.icon} size={24}/></div>
               <div style={{flex:1}}>
                 <div style={{fontSize:14,fontWeight:700,color:on?C.text:C.muted,marginBottom:2}}>{p.l}</div>
                 <div style={{fontSize:11,color:C.dim}}>{p.desc}</div>
@@ -936,17 +978,17 @@ function MainApp({initProfile}){
   var planDone=planDonePair[0],setPlanDone=planDonePair[1];
 
   var workoutHistoryPair=usePersist("workoutHistory",[
-    {type:"Running",icon:"🏃",date:"Oct 4",duration:"38 min",cals:312,dist:"5.2 km",color:C.green,
+    {type:"Running",icon:"run",date:"Oct 4",duration:"38 min",cals:312,dist:"5.2 km",color:C.green,
       pace:"7:18 /km",avgHr:158,elev:"+42 m",notes:"Morning run — felt strong after 2km"},
-    {type:"HIIT",icon:"⚡",date:"Oct 2",duration:"25 min",cals:280,dist:"—",color:C.pink,
+    {type:"HIIT",icon:"bolt",date:"Oct 2",duration:"25 min",cals:280,dist:"—",color:C.pink,
       avgHr:174,notes:"Tabata circuit · 8 rounds",
       sets:[{exercise:"Burpees",sets:4,reps:10},{exercise:"Jump Squats",sets:4,reps:15},{exercise:"Mountain Climbers",sets:4,reps:20},{exercise:"Push-ups",sets:4,reps:12}]},
-    {type:"Cycling",icon:"🚴",date:"Sep 30",duration:"52 min",cals:445,dist:"18.4 km",color:C.cyan,
+    {type:"Cycling",icon:"bike",date:"Sep 30",duration:"52 min",cals:445,dist:"18.4 km",color:C.cyan,
       pace:"2:49 /km",avgHr:142,elev:"+185 m",notes:"Coastal route, windy conditions"},
-    {type:"Strength",icon:"💪",date:"Sep 28",duration:"45 min",cals:210,dist:"—",color:C.purple,
+    {type:"Strength",icon:"muscle",date:"Sep 28",duration:"45 min",cals:210,dist:"—",color:C.purple,
       notes:"Upper body push day",
       sets:[{exercise:"Bench Press",sets:4,reps:8,weight:"70 kg"},{exercise:"Overhead Press",sets:3,reps:10,weight:"45 kg"},{exercise:"Tricep Dips",sets:3,reps:12},{exercise:"Lateral Raises",sets:3,reps:15,weight:"10 kg"}]},
-    {type:"Running",icon:"🏃",date:"Sep 26",duration:"44 min",cals:365,dist:"6.1 km",color:C.green,
+    {type:"Running",icon:"run",date:"Sep 26",duration:"44 min",cals:365,dist:"6.1 km",color:C.green,
       pace:"7:12 /km",avgHr:162,elev:"+28 m",notes:"Evening tempo run"},
   ]);
   var workoutHistory=workoutHistoryPair[0],setWorkoutHistory=workoutHistoryPair[1];
@@ -1748,13 +1790,13 @@ function MainApp({initProfile}){
               {/* Stat tiles */}
               <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8}}>
                 {[
-                  {icon:"📍",l:"Distance",v:dist+" "+unit,c:C.cyan,g:G.cyan},
-                  {icon:"🔥",l:"Calories",v:cals+" kcal",c:C.amber,g:G.amber},
-                  {icon:"⏱️",l:"Active",v:"42 min",c:C.pink,g:G.pink}
+                  {icon:"target",l:"Distance",v:dist+" "+unit,c:C.cyan,g:G.cyan},
+                  {icon:"fire",l:"Calories",v:cals+" kcal",c:C.amber,g:G.amber},
+                  {icon:"chart",l:"Active",v:"42 min",c:C.pink,g:G.pink}
                 ].map(function(m,i){
                   return(
                     <div key={i} style={{borderRadius:16,padding:"11px 8px",background:"rgba(255,255,255,0.06)",border:"1px solid rgba(255,255,255,0.08)",textAlign:"center",backdropFilter:"blur(6px)"}}>
-                      <div style={{fontSize:16,marginBottom:4}}>{m.icon}</div>
+                      <div style={{marginBottom:4,display:"flex",justifyContent:"center"}}><FIcon id={m.icon} size={16}/></div>
                       <div style={{fontSize:15,fontWeight:900,background:m.g,WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent",letterSpacing:-0.5}}>{m.v}</div>
                       <div style={{fontSize:9,color:"rgba(255,255,255,0.4)",marginTop:2,fontWeight:600,letterSpacing:0.5,textTransform:"uppercase"}}>{m.l}</div>
                     </div>
@@ -2020,7 +2062,7 @@ function MainApp({initProfile}){
                   {a.done&&<div style={{position:"absolute",top:-10,right:-10,width:40,height:40,borderRadius:"50%",background:C.amber+"33",filter:"blur(10px)",pointerEvents:"none"}}/>}
                   {/* unlock badge */}
                   {a.done&&<div style={{position:"absolute",top:6,right:6,fontSize:8,fontWeight:800,color:C.amber,letterSpacing:0.3,background:C.amber+"22",borderRadius:4,padding:"1px 4px",border:"1px solid "+C.amber+"44"}}>✓</div>}
-                  <div style={{fontSize:a.done?30:22,marginBottom:6,filter:a.done?"drop-shadow(0 0 8px "+C.amber+"88)":"grayscale(1) opacity(0.35)",transition:"all 0.3s"}}>{a.icon}</div>
+                  <div style={{marginBottom:6,opacity:a.done?1:0.35,transition:"all 0.3s"}}><FIcon id={a.icon} size={a.done?30:22} glow={a.done}/></div>
                   <div style={{fontSize:9,fontWeight:800,color:a.done?C.amber:C.muted,letterSpacing:0.2,lineHeight:1.2}}>{a.title}</div>
                   <div style={{fontSize:8,color:a.done?C.amber+"88":C.dim,marginTop:3,fontWeight:700}}>{a.xp} XP</div>
                   {/* XP progress bar */}
@@ -2139,11 +2181,11 @@ function MainApp({initProfile}){
                     var mins=Math.round(wTime/60)||1;
                     var burnRate2={Running:8,Cycling:7,HIIT:10,Yoga:3,Swimming:8,Strength:5,Walking:4};
                     var burned=Math.round((burnRate2[workout]||6)*mins);
-                    var iconMap={Running:"🏃",Cycling:"🚴",HIIT:"⚡",Yoga:"🧘",Swimming:"🏊",Strength:"💪",Walking:"🚶"};
+                    var iconMap={Running:"run",Cycling:"bike",HIIT:"bolt",Yoga:"moon",Swimming:"swim",Strength:"muscle",Walking:"walk"};
                     var realDist=gpsDist>50?(gpsDist/1000).toFixed(2)+" km":null;
                     var estDistMap={Running:(mins*0.13).toFixed(1)+" km",Cycling:(mins*0.35).toFixed(1)+" km",Walking:(mins*0.08).toFixed(1)+" km",Swimming:(mins*0.05).toFixed(1)+" km",HIIT:"—",Yoga:"—",Strength:"—"};
                     var dist=realDist||estDistMap[workout]||"—";
-                    var entry={type:workout,icon:iconMap[workout]||"🏋️",date:"Today",duration:mins+" min",cals:burned,dist:dist,color:C.green};
+                    var entry={type:workout,icon:iconMap[workout]||"dumbbell",date:"Today",duration:mins+" min",cals:burned,dist:dist,color:C.green};
                     setWorkoutSummary({entry:entry,mins:mins,burned:burned,dist:dist});
                     setWorkout(null);setWTime(0);setGpsCoords([]);setGpsDist(0);setGpsStatus("idle");setGpsPaused(false);
                   }} style={{flex:1,padding:"17px",borderRadius:50,border:"none",background:"#C0392B",color:"#fff",fontSize:16,fontWeight:800,cursor:"pointer",boxShadow:"0 4px 16px rgba(192,57,43,0.45)"}}>
@@ -2157,9 +2199,9 @@ function MainApp({initProfile}){
             {/* Workout types */}
             <div style={{fontSize:12,color:C.muted,fontWeight:600,letterSpacing:0.5,marginBottom:2}}>START WORKOUT</div>
             <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
-              {[{icon:"🏃",label:"Running",grad:[C.green,C.cyan]},{icon:"🚴",label:"Cycling",grad:[C.cyan,C.blue]},{icon:"🚶",label:"Walking",grad:[C.purple,C.purpleLight]},{icon:"⚡",label:"HIIT",grad:[C.pink,C.amber]}].map(function(w,i){
+              {[{icon:"run",label:"Running",grad:[C.green,C.cyan]},{icon:"bike",label:"Cycling",grad:[C.cyan,C.blue]},{icon:"walk",label:"Walking",grad:[C.purple,C.purpleLight]},{icon:"bolt",label:"HIIT",grad:[C.pink,C.amber]}].map(function(w,i){
                 return <button key={i} onClick={function(){workoutStepsStart.current=steps;setWorkout(w.label);setWTime(0);setGpsCoords([]);setGpsDist(0);setTab("track");}} style={{padding:"20px",borderRadius:20,border:"1px solid "+w.grad[0]+"44",background:"linear-gradient(135deg,"+w.grad[0]+"12,"+w.grad[1]+"08)",cursor:"pointer",textAlign:"center"}}>
-                  <div style={{fontSize:36,marginBottom:8}}>{w.icon}</div>
+                  <div style={{marginBottom:8,display:"flex",justifyContent:"center"}}><FIcon id={w.icon} size={36} glow/></div>
                   <div style={{fontSize:14,fontWeight:700,background:"linear-gradient(90deg,"+w.grad[0]+","+w.grad[1]+")",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent"}}>{w.label}</div>
                 </button>;
               })}
@@ -2315,7 +2357,7 @@ function MainApp({initProfile}){
                   <div key={i} style={{borderRadius:20,background:isOpen?"linear-gradient(145deg,"+w.color+"18,rgba(0,0,0,0.25))":"rgba(255,255,255,0.05)",border:"1px solid "+(isOpen?w.color+"55":"rgba(255,255,255,0.09)"),overflow:"hidden",transition:"all 0.3s",boxShadow:isOpen?"0 4px 24px "+w.color+"22":"none"}}>
                     {/* Header row — tap to expand */}
                     <div onClick={function(){setExpandedWorkout(isOpen?null:i);}} style={{display:"flex",alignItems:"center",gap:12,padding:"13px 15px",cursor:"pointer"}}>
-                      <div style={{width:46,height:46,borderRadius:16,background:w.color+"22",border:"1px solid "+w.color+"44",display:"flex",alignItems:"center",justifyContent:"center",fontSize:22,flexShrink:0,boxShadow:"0 2px 12px "+w.color+"22"}}>{w.icon}</div>
+                      <div style={{width:46,height:46,borderRadius:16,background:w.color+"22",border:"1px solid "+w.color+"44",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,boxShadow:"0 2px 12px "+w.color+"22"}}><FIcon id={w.icon||"run"} size={22}/></div>
                       <div style={{flex:1}}>
                         <div style={{fontSize:14,fontWeight:900,color:C.text}}>{w.type}</div>
                         <div style={{fontSize:11,color:C.muted,marginTop:3}}>{w.date} · {w.duration}</div>
@@ -2351,15 +2393,15 @@ function MainApp({initProfile}){
                         return <div style={{paddingTop:10}}>
                           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
                             {[
-                              {label:"Distance",val:w.dist||"—",icon:"📍"},
-                              {label:"Duration",val:w.duration||"—",icon:"⏱"},
-                              {label:"Avg Pace",val:w.pace||"—",icon:"🏃"},
-                              {label:"Calories",val:(w.cals||"—")+" kcal",icon:"🔥"},
-                              {label:"Avg HR",val:w.avgHr?(w.avgHr+" bpm"):"—",icon:"❤️"},
-                              {label:"Elevation",val:w.elev||"—",icon:"⛰️"},
+                              {label:"Distance",val:w.dist||"—",icon:"target"},
+                              {label:"Duration",val:w.duration||"—",icon:"chart"},
+                              {label:"Avg Pace",val:w.pace||"—",icon:"run"},
+                              {label:"Calories",val:(w.cals||"—")+" kcal",icon:"fire"},
+                              {label:"Avg HR",val:w.avgHr?(w.avgHr+" bpm"):"—",icon:"heart"},
+                              {label:"Elevation",val:w.elev||"—",icon:"bolt"},
                             ].map(function(stat,j){
                               return <div key={j} style={{background:"rgba(255,255,255,0.04)",borderRadius:12,padding:"10px 12px",border:"1px solid rgba(255,255,255,0.07)"}}>
-                                <div style={{fontSize:11,color:C.muted,marginBottom:3}}>{stat.icon} {stat.label}</div>
+                                <div style={{fontSize:11,color:C.muted,marginBottom:3,display:"flex",alignItems:"center",gap:4}}><FIcon id={stat.icon} size={11}/>{stat.label}</div>
                                 <div style={{fontSize:14,fontWeight:800,color:stat.val==="—"?C.muted:C.text}}>{stat.val}</div>
                               </div>;
                             })}
@@ -2377,7 +2419,7 @@ function MainApp({initProfile}){
             <div style={{fontSize:12,color:C.muted,fontWeight:600,letterSpacing:0.5,marginBottom:2}}>TRAINING PLANS</div>
             {activePlan?<div style={{borderRadius:20,padding:18,background:C.card,border:"1px solid "+activePlan.color+"44"}}>
               <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:16}}>
-                <div style={{fontSize:28}}>{activePlan.icon}</div>
+                <FIcon id={activePlan.icon} size={28} glow/>
                 <div style={{flex:1}}>
                   <div style={{fontSize:16,fontWeight:800,color:activePlan.color}}>{activePlan.name}</div>
                   <div style={{fontSize:12,color:C.muted}}>{activePlan.weeks} weeks · {activePlan.desc}</div>
@@ -2398,7 +2440,7 @@ function MainApp({initProfile}){
               </div>
             </div>:CUSTOM_PLANS.map(function(plan,i){
               return <div key={i} style={{borderRadius:20,padding:16,background:C.card,border:"1px solid "+plan.color+"33",display:"flex",alignItems:"center",gap:14}}>
-                <div style={{fontSize:28}}>{plan.icon}</div>
+                <FIcon id={plan.icon} size={28} glow/>
                 <div style={{flex:1}}>
                   <div style={{fontSize:14,fontWeight:700}}>{plan.name}</div>
                   <div style={{fontSize:11,color:C.muted}}>{plan.weeks} weeks · {plan.desc}</div>
@@ -2615,13 +2657,13 @@ function MainApp({initProfile}){
               {/* Factor breakdown */}
               <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginTop:14}}>
                 {[
-                  {l:"Sleep",v:sleepHrs?sleepHrs+"h":"—",pts:Math.round(sleepScore),max:35,c:C.blue,icon:"🌙"},
-                  {l:"Resting HR",v:restingHr+" bpm",pts:hrScore,max:30,c:C.pink,icon:"♥"},
-                  {l:"Workout Load",v:ydWorkout?"Active yd":"Rest yd",pts:Math.round(workoutScore),max:20,c:C.amber,icon:"🏋️"},
-                  {l:"Activity",v:steps.toLocaleString()+" steps",pts:Math.round(todayStepsPts),max:15,c:C.green,icon:"👟"},
+                  {l:"Sleep",v:sleepHrs?sleepHrs+"h":"—",pts:Math.round(sleepScore),max:35,c:C.blue,icon:"sleep"},
+                  {l:"Resting HR",v:restingHr+" bpm",pts:hrScore,max:30,c:C.pink,icon:"heart"},
+                  {l:"Workout Load",v:ydWorkout?"Active yd":"Rest yd",pts:Math.round(workoutScore),max:20,c:C.amber,icon:"dumbbell"},
+                  {l:"Activity",v:steps.toLocaleString()+" steps",pts:Math.round(todayStepsPts),max:15,c:C.green,icon:"steps"},
                 ].map(function(f,i){
                   return <div key={i} style={{borderRadius:14,padding:"10px 12px",background:"rgba(255,255,255,0.05)",border:"1px solid "+f.c+"22"}}>
-                    <div style={{fontSize:11,marginBottom:4}}>{f.icon} <span style={{color:f.c,fontWeight:700,fontSize:10}}>{f.l.toUpperCase()}</span></div>
+                    <div style={{marginBottom:4,display:"flex",alignItems:"center",gap:4}}><FIcon id={f.icon} size={11}/><span style={{color:f.c,fontWeight:700,fontSize:10}}>{f.l.toUpperCase()}</span></div>
                     <div style={{fontSize:12,color:"rgba(255,255,255,0.7)",marginBottom:6}}>{f.v}</div>
                     <div style={{background:"rgba(255,255,255,0.08)",borderRadius:4,height:3,overflow:"hidden"}}>
                       <div style={{width:(f.pts/f.max*100)+"%",background:f.c,height:"100%",borderRadius:4}}/>
@@ -2660,9 +2702,9 @@ function MainApp({initProfile}){
             <GlassCard style={{padding:18}}>
               <div style={{fontSize:12,color:C.muted,fontWeight:600,letterSpacing:0.5,marginBottom:14}}>CALORIE BALANCE</div>
               <div style={{display:"flex",gap:10}}>
-                {[{l:"Burned",v:Math.round(steps*0.04+350),c:C.pink,icon:"🔥"},{l:"Intake",v:2100,c:C.amber,icon:"🥗"},{l:"Net",v:Math.abs(Math.round(steps*0.04+350)-2100),c:C.green,icon:"⚖️"}].map(function(m,i){
+                {[{l:"Burned",v:Math.round(steps*0.04+350),c:C.pink,icon:"fire"},{l:"Intake",v:2100,c:C.amber,icon:"star"},{l:"Net",v:Math.abs(Math.round(steps*0.04+350)-2100),c:C.green,icon:"target"}].map(function(m,i){
                   return <div key={i} style={{flex:1,textAlign:"center",padding:"12px 8px",borderRadius:14,background:"#1565C0",border:"1px solid "+m.c+"22"}}>
-                    <div style={{fontSize:18}}>{m.icon}</div>
+                    <div style={{display:"flex",justifyContent:"center"}}><FIcon id={m.icon} size={18}/></div>
                     <div style={{fontSize:18,fontWeight:800,color:m.c,marginTop:4}}>{m.v}</div>
                     <div style={{fontSize:9,color:C.muted}}>kcal</div>
                   </div>;
@@ -2720,9 +2762,9 @@ function MainApp({initProfile}){
                   </div>
                 </div>}
                 <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
-                  {[{icon:"💤",l:"Quality",v:last?last.quality:"—",sub:sleepQ+"/100",c:C.purple},{icon:"📊",l:"7-Day Avg",v:avgHrs+"h",sub:"per night",c:C.cyan},{icon:"🌙",l:"Logged",v:sleepLogs.length,sub:"nights",c:C.blue},{icon:"🏆",l:"Best",v:sleepLogs.length?Math.max.apply(null,sleepLogs.map(function(l){return l.hours;})).toFixed(1)+"h":"—",sub:"longest",c:C.green}].map(function(m,i){
+                  {[{icon:"sleep",l:"Quality",v:last?last.quality:"—",sub:sleepQ+"/100",c:C.purple},{icon:"chart",l:"7-Day Avg",v:avgHrs+"h",sub:"per night",c:C.cyan},{icon:"moon",l:"Logged",v:sleepLogs.length,sub:"nights",c:C.blue},{icon:"trophy",l:"Best",v:sleepLogs.length?Math.max.apply(null,sleepLogs.map(function(l){return l.hours;})).toFixed(1)+"h":"—",sub:"longest",c:C.green}].map(function(m,i){
                     return <div key={i} style={{borderRadius:18,padding:16,background:C.card,border:"1px solid "+m.c+"33"}}>
-                      <div style={{fontSize:22,marginBottom:6}}>{m.icon}</div>
+                      <div style={{marginBottom:6}}><FIcon id={m.icon} size={22} glow/></div>
                       <div style={{fontSize:18,fontWeight:800,color:m.c}}>{m.v}</div>
                       <div style={{fontSize:10,color:C.muted}}>{m.l}</div>
                       <div style={{fontSize:10,color:m.c,marginTop:2,fontWeight:600}}>{m.sub}</div>
@@ -2791,12 +2833,12 @@ function MainApp({initProfile}){
             var wData=weightLogs.map(function(l){return l.w;});
             var latestM=measureLogs[0]||null;
             var MFIELDS=[
-              {key:"chest",label:"Chest",icon:"💪",color:C.amber,unit:"cm"},
-              {key:"waist",label:"Waist",icon:"📏",color:C.cyan,unit:"cm"},
-              {key:"hips",label:"Hips",icon:"🏃",color:C.pink,unit:"cm"},
-              {key:"arms",label:"Arms",icon:"💪",color:C.green,unit:"cm"},
-              {key:"thighs",label:"Thighs",icon:"🦵",color:C.purple,unit:"cm"},
-              {key:"neck",label:"Neck",icon:"🧣",color:C.blue,unit:"cm"},
+              {key:"chest",label:"Chest",icon:"muscle",color:C.amber,unit:"cm"},
+              {key:"waist",label:"Waist",icon:"target",color:C.cyan,unit:"cm"},
+              {key:"hips",label:"Hips",icon:"run",color:C.pink,unit:"cm"},
+              {key:"arms",label:"Arms",icon:"dumbbell",color:C.green,unit:"cm"},
+              {key:"thighs",label:"Thighs",icon:"bike",color:C.purple,unit:"cm"},
+              {key:"neck",label:"Neck",icon:"heart",color:C.blue,unit:"cm"},
             ];
             function saveMeasure(){
               var entry={date:todayStr(),chest:mChest,waist:mWaist,hips:mHips,arms:mArms,thighs:mThighs,neck:mNeck};
@@ -2843,7 +2885,7 @@ function MainApp({initProfile}){
                       var prev=prevM?prevM[f.key]:null;
                       var delta=val&&prev?Math.round((parseFloat(val)-parseFloat(prev))*10)/10:null;
                       return <div key={i} style={{borderRadius:16,padding:"12px 14px",background:"rgba(255,255,255,0.04)",border:"1px solid "+f.color+"22"}}>
-                        <div style={{fontSize:11,color:f.color,fontWeight:700,letterSpacing:0.5,marginBottom:4}}>{f.icon} {f.label.toUpperCase()}</div>
+                        <div style={{fontSize:11,color:f.color,fontWeight:700,letterSpacing:0.5,marginBottom:4,display:"flex",alignItems:"center",gap:4}}><FIcon id={f.icon} size={11}/>{f.label.toUpperCase()}</div>
                         <div style={{display:"flex",alignItems:"baseline",gap:4}}>
                           <div style={{fontSize:24,fontWeight:900,color:C.text}}>{val||"—"}</div>
                           {val&&<div style={{fontSize:10,color:C.muted}}>{f.unit}</div>}
@@ -2878,15 +2920,15 @@ function MainApp({initProfile}){
                     <div style={{fontSize:11,color:C.muted,marginBottom:16}}>Enter in centimeters. Leave blank to skip.</div>
                     <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:20}}>
                       {[
-                        {label:"Chest",icon:"💪",val:mChest,set:setMChest},
-                        {label:"Waist",icon:"📏",val:mWaist,set:setMWaist},
-                        {label:"Hips",icon:"🏃",val:mHips,set:setMHips},
-                        {label:"Arms",icon:"💪",val:mArms,set:setMArms},
-                        {label:"Thighs",icon:"🦵",val:mThighs,set:setMThighs},
-                        {label:"Neck",icon:"🧣",val:mNeck,set:setMNeck},
+                        {label:"Chest",icon:"muscle",val:mChest,set:setMChest},
+                        {label:"Waist",icon:"target",val:mWaist,set:setMWaist},
+                        {label:"Hips",icon:"run",val:mHips,set:setMHips},
+                        {label:"Arms",icon:"dumbbell",val:mArms,set:setMArms},
+                        {label:"Thighs",icon:"bike",val:mThighs,set:setMThighs},
+                        {label:"Neck",icon:"heart",val:mNeck,set:setMNeck},
                       ].map(function(f,i){
                         return <div key={i} style={{borderRadius:14,padding:"12px",background:"rgba(255,255,255,0.04)",border:"1px solid "+C.border}}>
-                          <div style={{fontSize:10,color:C.muted,fontWeight:700,marginBottom:6}}>{f.icon} {f.label.toUpperCase()}</div>
+                          <div style={{fontSize:10,color:C.muted,fontWeight:700,marginBottom:6,display:"flex",alignItems:"center",gap:4}}><FIcon id={f.icon} size={10}/>{f.label.toUpperCase()}</div>
                           <div style={{display:"flex",alignItems:"baseline",gap:4}}>
                             <input type="number" value={f.val} onChange={function(e){f.set(e.target.value);}} placeholder="0" style={{background:"transparent",border:"none",outline:"none",color:C.text,fontSize:22,fontWeight:900,width:"60px"}}/>
                             <span style={{fontSize:11,color:C.dim}}>cm</span>
@@ -3069,7 +3111,7 @@ function MainApp({initProfile}){
               return(
                 <div key={inv.id} style={{borderRadius:16,background:"rgba(255,255,255,0.05)",border:"1px solid rgba(255,152,0,0.3)",padding:"14px",marginBottom:8}}>
                   <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:12}}>
-                    <div style={{width:44,height:44,borderRadius:14,background:(inv.color||"#4CAF50")+"33",border:"2px solid "+(inv.color||"#4CAF50")+"88",display:"flex",alignItems:"center",justifyContent:"center",fontSize:22,flexShrink:0}}>{inv.icon||"🏆"}</div>
+                    <div style={{width:44,height:44,borderRadius:14,background:(inv.color||"#4CAF50")+"33",border:"2px solid "+(inv.color||"#4CAF50")+"88",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}><FIcon id={inv.icon||"trophy"} size={22}/></div>
                     <div style={{flex:1,minWidth:0}}>
                       <div style={{fontSize:14,fontWeight:900,color:"#fff",marginBottom:2}}>{inv.title}</div>
                       <div style={{fontSize:11,color:"rgba(255,255,255,0.5)"}}>from {inv.creatorName||"Someone"} · {inv.goal||""} · {inv.daysLeft||30} days</div>
@@ -3147,7 +3189,7 @@ function MainApp({initProfile}){
                     <div style={{position:"absolute",top:0,left:0,right:0,bottom:0,opacity:0.15,fontSize:60,display:"flex",alignItems:"center",justifyContent:"center",lineHeight:1,overflow:"hidden",pointerEvents:"none"}}>{ch.scene||ch.icon}</div>
                     <div style={{position:"relative",zIndex:1,display:"flex",alignItems:"center",justifyContent:"space-between"}}>
                       <div>
-                        <div style={{fontSize:16,fontWeight:900,color:"#fff"}}>{ch.icon} {ch.title}</div>
+                        <div style={{fontSize:16,fontWeight:900,color:"#fff",display:"flex",alignItems:"center",gap:6}}><FIcon id={ch.icon} size={18}/>{ch.title}</div>
                         <div style={{fontSize:11,color:"rgba(255,255,255,0.7)",marginTop:2}}>{ch.ends||ch.daysLeft+" days left"} · 👥 {ch.participants} joined</div>
                       </div>
                       <div style={{textAlign:"center",background:"rgba(0,0,0,0.3)",borderRadius:14,padding:"8px 14px"}}>
@@ -3204,7 +3246,7 @@ function MainApp({initProfile}){
                         <div style={{fontSize:20,fontWeight:900,color:"#fff",letterSpacing:-0.5}}>{ch.title}</div>
                         <div style={{fontSize:12,color:"rgba(255,255,255,0.75)",marginTop:3}}>⏱ {ch.daysLeft} days left · 👥 {ch.participants} joined</div>
                       </div>
-                      <div style={{fontSize:36,filter:"drop-shadow(0 2px 8px rgba(0,0,0,0.5))"}}>{ch.icon}</div>
+                      <FIcon id={ch.icon} size={36} glow/>
                     </div>
                     <div style={{marginTop:14,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
                       <div>
@@ -3263,7 +3305,7 @@ function MainApp({initProfile}){
                     <div style={{position:"relative",zIndex:1,display:"flex",alignItems:"center",justifyContent:"space-between"}}>
                       <div>
                         <div style={{fontSize:11,color:"rgba(255,255,255,0.6)",fontWeight:700,letterSpacing:1,marginBottom:3}}>MY CHALLENGE</div>
-                        <div style={{fontSize:17,fontWeight:900,color:"#fff"}}>{ch.icon} {ch.title}</div>
+                        <div style={{fontSize:17,fontWeight:900,color:"#fff",display:"flex",alignItems:"center",gap:6}}><FIcon id={ch.icon} size={18}/>{ch.title}</div>
                         <div style={{fontSize:11,color:"rgba(255,255,255,0.65)",marginTop:3}}>🎯 {ch.goal} · ⏱ {ch.daysLeft||ch.days} days left</div>
                       </div>
                       <div style={{background:"rgba(255,255,255,0.2)",borderRadius:12,padding:"5px 12px",fontSize:11,color:"#fff",fontWeight:800}}>Creator</div>
@@ -3344,7 +3386,7 @@ function MainApp({initProfile}){
                   <button onClick={function(){setActiveChallenge(null);}} style={{position:"absolute",top:16,left:16,background:"rgba(0,0,0,0.3)",border:"none",borderRadius:50,width:36,height:36,color:"#fff",fontSize:20,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>‹</button>
                   <div style={{position:"absolute",top:0,left:0,right:0,bottom:0,opacity:0.15,fontSize:120,display:"flex",alignItems:"center",justifyContent:"center",lineHeight:1,overflow:"hidden",pointerEvents:"none"}}>{ch.scene}</div>
                   <div style={{position:"relative",zIndex:1,textAlign:"center"}}>
-                    <div style={{fontSize:48,marginBottom:8,filter:"drop-shadow(0 4px 12px rgba(0,0,0,0.5))"}}>{ch.icon}</div>
+                    <div style={{marginBottom:8}}><FIcon id={ch.icon} size={48} glow/></div>
                     <div style={{fontSize:22,fontWeight:900,color:"#fff",letterSpacing:-0.5}}>{ch.title}</div>
                     <div style={{fontSize:12,color:"rgba(255,255,255,0.75)",marginTop:4}}>{ch.ends} · {ch.daysLeft} days left · {ch.participants} participants</div>
                   </div>
@@ -4335,9 +4377,9 @@ function MainApp({initProfile}){
             var trialDaysLeft=Math.max(0,7-Math.floor((Date.now()-trialStart)/(1000*60*60*24)));
             var trialActive=trialDaysLeft>0;
             var PLANS=[
-              {id:"monthly",label:"1 Month",price:"$4.99",per:"/mo",color:C.cyan,icon:"⚡",desc:"Billed monthly · Cancel anytime",savings:""},
-              {id:"biannual",label:"6 Months",price:"$19.99",per:"/6mo",color:C.green,icon:"🔥",desc:"Only $3.33/mo · Save 33%",savings:"POPULAR",badge:true},
-              {id:"annual",label:"12 Months",price:"$34.99",per:"/yr",color:C.purple,icon:"👑",desc:"Only $2.92/mo · Save 42%",savings:"BEST VALUE"},
+              {id:"monthly",label:"1 Month",price:"$4.99",per:"/mo",color:C.cyan,icon:"bolt",desc:"Billed monthly · Cancel anytime",savings:""},
+              {id:"biannual",label:"6 Months",price:"$19.99",per:"/6mo",color:C.green,icon:"fire",desc:"Only $3.33/mo · Save 33%",savings:"POPULAR",badge:true},
+              {id:"annual",label:"12 Months",price:"$34.99",per:"/yr",color:C.purple,icon:"crown",desc:"Only $2.92/mo · Save 42%",savings:"BEST VALUE"},
             ];
             var isSubbed=sub&&sub.id;
             var activePlan=isSubbed?PLANS.find(function(p){return p.id===sub.id;}):null;
@@ -4376,7 +4418,7 @@ function MainApp({initProfile}){
                       :<div><span style={{fontSize:13,fontWeight:700,color:C.amber}}>⏰ Trial Ended · Subscribe to keep PRO</span></div>}
                   </div>}
                   {isSubbed&&activePlan&&<div style={{padding:"12px 14px",borderRadius:14,background:activePlan.color+"15",border:"1px solid "+activePlan.color+"44",marginBottom:16,display:"flex",alignItems:"center",gap:10}}>
-                    <span style={{fontSize:20}}>{activePlan.icon}</span>
+                    <FIcon id={activePlan.icon} size={20}/>
                     <div style={{flex:1}}>
                       <div style={{fontSize:13,fontWeight:800,color:activePlan.color}}>✅ {activePlan.label} Plan Active</div>
                       <div style={{fontSize:11,color:C.muted}}>Subscribed on {new Date(sub.date).toLocaleDateString()}</div>
@@ -4390,7 +4432,7 @@ function MainApp({initProfile}){
                       return <div key={plan.id} style={{borderRadius:16,padding:"14px 16px",background:isActive?plan.color+"18":"rgba(255,255,255,0.04)",border:"2px solid "+(isActive?plan.color:plan.color+"33"),position:"relative"}}>
                         {plan.savings&&<div style={{position:"absolute",top:-10,right:14,background:plan.badge?"linear-gradient(135deg,"+C.green+","+C.greenDark+")":plan.color,color:"#000",fontSize:9,fontWeight:900,padding:"3px 10px",borderRadius:20,letterSpacing:1}}>{plan.savings}</div>}
                         <div style={{display:"flex",alignItems:"center",gap:12}}>
-                          <div style={{fontSize:26}}>{plan.icon}</div>
+                          <FIcon id={plan.icon} size={26} glow/>
                           <div style={{flex:1}}>
                             <div style={{fontSize:15,fontWeight:800,color:C.text}}>{plan.label}</div>
                             <div style={{fontSize:10,color:C.muted,marginTop:2}}>{plan.desc}</div>
@@ -4485,7 +4527,7 @@ function MainApp({initProfile}){
             {deviceMsg&&<div style={{marginBottom:12,padding:"10px 14px",borderRadius:12,background:deviceMsg.startsWith("✓")?C.green+"18":C.red+"18",border:"1px solid "+(deviceMsg.startsWith("✓")?C.green+"44":C.red+"44"),fontSize:12,fontWeight:600,color:deviceMsg.startsWith("✓")?C.green:C.red}}>{deviceMsg}</div>}
             {DEVICES.map(function(d,i){
               return <div key={i} style={{display:"flex",alignItems:"center",gap:12,padding:"10px 0",borderBottom:"1px solid "+(i<DEVICES.length-1?C.border:"transparent")}}>
-                <div style={{width:42,height:42,borderRadius:13,background:d.color+"18",border:"1px solid "+(deviceStates[i]?d.color+"55":d.color+"22"),display:"flex",alignItems:"center",justifyContent:"center",fontSize:20,flexShrink:0}}>{d.icon}</div>
+                <div style={{width:42,height:42,borderRadius:13,background:d.color+"18",border:"1px solid "+(deviceStates[i]?d.color+"55":d.color+"22"),display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}><FIcon id={d.icon} size={22}/></div>
                 <div style={{flex:1}}>
                   <div style={{fontSize:13,fontWeight:700}}>{d.name}</div>
                   <div style={{fontSize:11,color:deviceStates[i]?C.green:C.muted}}>{connectingDevice===i?"⏳ Connecting...":(deviceStates[i]?"● Connected":"○ Not connected")}</div>
@@ -4498,14 +4540,14 @@ function MainApp({initProfile}){
           </GlassCard>
           <GlassCard style={{padding:18}}>
             <div style={{fontSize:12,color:C.muted,fontWeight:600,letterSpacing:0.5,marginBottom:14}}>🔒 HEALTH & PRIVACY</div>
-            {[{icon:"🩸",label:"Cycle Tracking",sub:"Synced with fitness load",on:true,c:C.pink},{icon:"📄",label:"Doctor Report Export",sub:"PDF of HR, BP & activity",on:true,c:C.blue},{icon:"🔐",label:"Local-first Data",sub:"Encrypted cloud backup",on:true,c:C.green},{icon:"🆘",label:"Emergency SOS",sub:"Sends GPS if HR anomaly",on:sosActive,c:C.red}].map(function(item,i){
+            {[{id:"cycle",icon:"heart",label:"Cycle Tracking",sub:"Synced with fitness load",on:true,c:C.pink},{id:"doctor",icon:"chart",label:"Doctor Report Export",sub:"PDF of HR, BP & activity",on:true,c:C.blue},{id:"lock",icon:"moon",label:"Local-first Data",sub:"Encrypted cloud backup",on:true,c:C.green},{id:"sos",icon:"bolt",label:"Emergency SOS",sub:"Sends GPS if HR anomaly",on:sosActive,c:C.red}].map(function(item,i){
               return <div key={i} style={{display:"flex",alignItems:"center",gap:12,padding:"10px 0",borderBottom:"1px solid "+(i<3?C.border:"transparent")}}>
-                <div style={{fontSize:22,width:32,textAlign:"center"}}>{item.icon}</div>
+                <div style={{width:32,display:"flex",justifyContent:"center"}}><FIcon id={item.icon} size={22}/></div>
                 <div style={{flex:1}}>
                   <div style={{fontSize:13,fontWeight:700}}>{item.label}</div>
                   <div style={{fontSize:11,color:C.muted}}>{item.sub}</div>
                 </div>
-                <div onClick={function(){if(item.icon==="🆘")setSosActive(function(s){return !s;});if(item.icon==="📄")setShowDoctorReport(true);}} style={{width:44,height:24,borderRadius:12,background:item.on?item.c+"33":C.card2,border:"1px solid "+(item.on?item.c+"44":C.border),position:"relative",cursor:"pointer"}}>
+                <div onClick={function(){if(item.id==="sos")setSosActive(function(s){return !s;});if(item.id==="doctor")setShowDoctorReport(true);}} style={{width:44,height:24,borderRadius:12,background:item.on?item.c+"33":C.card2,border:"1px solid "+(item.on?item.c+"44":C.border),position:"relative",cursor:"pointer"}}>
                   <div style={{width:18,height:18,borderRadius:"50%",background:item.on?item.c:"#3A4060",position:"absolute",top:2,left:item.on?22:2,transition:"all 0.25s",boxShadow:item.on?"0 0 8px "+item.c+"80":"none"}}/>
                 </div>
               </div>;
@@ -5075,15 +5117,15 @@ function MainApp({initProfile}){
             <div style={{width:"100%",maxWidth:380,borderRadius:28,background:"linear-gradient(160deg,#0A1628,#0D1F2D)",border:"1px solid "+C.green+"44",overflow:"hidden",boxShadow:"0 0 60px "+C.green+"22"}}>
               {/* Top banner */}
               <div style={{background:"linear-gradient(135deg,"+C.green+"22,"+C.cyan+"11)",padding:"28px 24px 20px",textAlign:"center",borderBottom:"1px solid "+C.green+"22"}}>
-                <div style={{fontSize:52,marginBottom:8}}>{ws.entry.icon}</div>
+                <div style={{marginBottom:8,display:"flex",justifyContent:"center"}}><FIcon id={ws.entry.icon} size={52} glow/></div>
                 <div style={{fontSize:11,color:C.green,fontWeight:700,letterSpacing:1,marginBottom:4}}>WORKOUT COMPLETE</div>
                 <div style={{fontSize:22,fontWeight:900,color:C.text}}>{ws.entry.type}</div>
               </div>
               {/* Stats grid */}
               <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",padding:"20px 16px",gap:1}}>
-                {[{icon:"⏱",l:"Duration",v:ws.mins+" min"},{icon:"🔥",l:"Calories",v:ws.burned+" kcal"},{icon:"📍",l:"Distance",v:ws.dist&&ws.dist!=="—"?ws.dist:"—"}].map(function(s,i){
+                {[{icon:"chart",l:"Duration",v:ws.mins+" min"},{icon:"fire",l:"Calories",v:ws.burned+" kcal"},{icon:"target",l:"Distance",v:ws.dist&&ws.dist!=="—"?ws.dist:"—"}].map(function(s,i){
                   return <div key={i} style={{textAlign:"center",padding:"12px 8px"}}>
-                    <div style={{fontSize:22,marginBottom:4}}>{s.icon}</div>
+                    <div style={{marginBottom:4,display:"flex",justifyContent:"center"}}><FIcon id={s.icon} size={22}/></div>
                     <div style={{fontSize:20,fontWeight:900,color:C.green}}>{s.v}</div>
                     <div style={{fontSize:10,color:C.muted,marginTop:2}}>{s.l}</div>
                   </div>;
