@@ -375,7 +375,6 @@ const TABS=[
   {id:"maps",label:"Maps",svgPath:"M20.5 3l-.16.03L15 5.1 9 3 3.36 4.9c-.21.07-.36.25-.36.48V20.5c0 .28.22.5.5.5l.16-.03L9 18.9l6 2.1 5.64-1.9c.21-.07.36-.25.36-.48V3.5c0-.28-.22-.5-.5-.5zM15 19l-6-2.11V5l6 2.11V19z",grad:[C.cyan,C.blue]},
   {id:"analytics",label:"Stats",svgPath:"M4 20h4V10H4v10zm6 0h4V4h-4v16zm6 0h4v-7h-4v7z",grad:[C.amber,C.pink]},
   {id:"social",label:"Social",svgPath:"M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z",grad:[C.pink,C.purpleLight]},
-  {id:"chat",label:"Chat",svgPath:"M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-2 12H6v-2h12v2zm0-3H6V9h12v2zm0-3H6V6h12v2z",grad:[C.green,C.cyan]},
   {id:"fitness",label:"Fitness",svgPath:"M20.57 14.86L22 13.43 20.57 12 17 15.57 8.43 7 12 3.43 10.57 2 9.14 3.43 7.71 2 5.57 4.14 4.14 2.71 2.71 4.14l1.43 1.43L2 7.71l1.43 1.43L2 10.57 3.43 12 7 8.43 15.57 17 12 20.57 13.43 22l1.43-1.43L16.29 22l2.14-2.14 1.43 1.43 1.43-1.43-1.43-1.43L22 16.29z",grad:[C.red,C.amber]},
   {id:"more",label:"More",svgPath:"M4 8h4V4H4v4zm6 0h4V4h-4v4zm6 0h4V4h-4v4zM4 14h4v-4H4v4zm6 0h4v-4h-4v4zm6 0h4v-4h-4v4zM4 20h4v-4H4v4zm6 0h4v-4h-4v4zm6 0h4v-4h-4v4z",grad:[C.purpleLight,C.purple]},
 ];
@@ -825,12 +824,6 @@ function MainApp({initProfile}){
   const [fsSearching,setFsSearching]=useState(false);
   const [fsChallenges,setFsChallenges]=useState([]); // cloud challenges
   const [fsInvites,setFsInvites]=useState([]);    // challenges I've been invited to
-  // ── Chat state ──
-  const [fsChats,setFsChats]=useState([]);         // list of conversations
-  const [openChat,setOpenChat]=useState(null);     // {uid,name,photoURL,chatId}
-  const [chatMessages,setChatMessages]=useState([]);
-  const [chatInput,setChatInput]=useState("");
-  const [chatUnread,setChatUnread]=useState(0);
   // ── Stories state ──
   const [fsStories,setFsStories]=useState([]);     // all active stories from friends
   const [myStory,setMyStory]=useState(null);       // my own active story
@@ -1225,76 +1218,6 @@ function MainApp({initProfile}){
     });
     return function(){unsub();};
   },[]);
-
-  // ── Firestore: chats listener ──
-  useEffect(function(){
-    if(!window.__FB)return;
-    var myUid=window.__sfUid;
-    if(!myUid)return;
-    var fb=window.__FB;
-    var q=fb.query(fb.collection(fb.db,"chats"),fb.where("members","array-contains",myUid),fb.orderBy("lastAt","desc"));
-    var unsub=fb.onSnapshot(q,function(snap){
-      var list=[];
-      var unread=0;
-      snap.forEach(function(d){
-        var c=Object.assign({id:d.id},d.data());
-        if((c.unread||{})[myUid]>0)unread+=(c.unread||{})[myUid];
-        list.push(c);
-      });
-      setFsChats(list);
-      setChatUnread(unread);
-    });
-    return function(){unsub();};
-  },[]);
-
-  // ── open a chat with a user ──
-  function openChatWith(uid,name,photoURL){
-    if(!window.__FB||!window.__sfUid)return;
-    var myUid=window.__sfUid;
-    var fb=window.__FB;
-    // chatId = sorted uids joined
-    var chatId=[myUid,uid].sort().join("_");
-    var chatRef=fb.doc(fb.db,"chats",chatId);
-    fb.getDoc(chatRef).then(function(d){
-      if(!d.exists()){
-        fb.setDoc(chatRef,{members:[myUid,uid],lastAt:Date.now(),lastMsg:"",unread:{}});
-      }
-      setOpenChat({uid:uid,name:name,photoURL:photoURL,chatId:chatId});
-      setTab("chat");
-    });
-  }
-
-  // ── listen to messages when chat opened ──
-  useEffect(function(){
-    if(!openChat||!window.__FB)return;
-    var fb=window.__FB;
-    var myUid=window.__sfUid;
-    var q=fb.query(fb.collection(fb.db,"chats",openChat.chatId,"messages"),fb.orderBy("at","asc"));
-    var unsub=fb.onSnapshot(q,function(snap){
-      var msgs=[];
-      snap.forEach(function(d){msgs.push(Object.assign({id:d.id},d.data()));});
-      setChatMessages(msgs);
-      // mark as read
-      var unreadUpd={};
-      unreadUpd["unread."+myUid]=0;
-      fb.updateDoc(fb.doc(fb.db,"chats",openChat.chatId),unreadUpd).catch(function(){});
-    });
-    return function(){unsub();};
-  },[openChat]);
-
-  // ── send a chat message ──
-  function sendChatMsg(){
-    var txt=chatInput.trim();
-    if(!txt||!openChat||!window.__FB||!window.__sfUid)return;
-    var fb=window.__FB;
-    var myUid=window.__sfUid;
-    setChatInput("");
-    var msgRef=fb.collection(fb.db,"chats",openChat.chatId,"messages");
-    fb.addDoc(msgRef,{uid:myUid,name:profile.name||"User",text:txt,at:Date.now()});
-    var unreadUpd={lastMsg:txt,lastAt:Date.now()};
-    unreadUpd["unread."+openChat.uid]=(1); // increment on other side
-    fb.updateDoc(fb.doc(fb.db,"chats",openChat.chatId),unreadUpd).catch(function(){});
-  }
 
   // ── post a story ──
   function postStory(){
@@ -3178,17 +3101,6 @@ function MainApp({initProfile}){
             </div>
           </div>
 
-          {/* ── MESSAGES shortcut ── */}
-          <div onClick={function(){setTab("chat");}} style={{display:"flex",alignItems:"center",gap:14,padding:"14px 18px",borderRadius:18,background:"linear-gradient(135deg,rgba(76,175,80,0.12),rgba(0,188,212,0.08))",border:"1px solid rgba(76,175,80,0.25)",cursor:"pointer"}}>
-            <div style={{width:44,height:44,borderRadius:50,background:"linear-gradient(135deg,#4CAF50,#00BCD4)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:22,flexShrink:0}}>💬</div>
-            <div style={{flex:1}}>
-              <div style={{fontSize:14,fontWeight:900,color:"#fff",marginBottom:2}}>Messages</div>
-              <div style={{fontSize:12,color:C.muted}}>{fsChats.length>0?fsChats.length+" conversation"+(fsChats.length>1?"s":""):"Chat with friends"}</div>
-            </div>
-            {chatUnread>0&&<div style={{minWidth:22,height:22,borderRadius:11,background:"#FF3B30",display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,fontWeight:900,color:"#fff",padding:"0 6px"}}>{chatUnread}</div>}
-            <div style={{fontSize:18,color:C.muted}}>›</div>
-          </div>
-
           {/* Challenge Invitations */}
           {fsInvites.length>0&&<div style={{borderRadius:20,background:"linear-gradient(135deg,#1a2a3a,#0d1f2d)",border:"2px solid #FF9800AA",padding:"16px 16px 12px",boxShadow:"0 0 24px #FF980033"}}>
             <div style={{fontSize:11,color:"#FF9800",fontWeight:800,letterSpacing:1.5,marginBottom:12}}>🔔 CHALLENGE INVITATIONS</div>
@@ -4305,10 +4217,9 @@ function MainApp({initProfile}){
           );
         })()}
 
-        {/* CHAT TAB */}
-        {tab==="chat"&&<div style={{display:"flex",flexDirection:"column",gap:0,height:"calc(100vh - 130px)"}}>
+        {/* _CHAT TAB REMOVED_ */}
+        {false&&<div>
           {openChat
-            /* ── OPEN CONVERSATION ── */
             ?(function(){
               var myUid=window.__sfUid||"";
               var initials=(openChat.name||"?").split(" ").map(function(w){return w[0];}).join("").toUpperCase().slice(0,2);
@@ -4752,7 +4663,6 @@ function MainApp({initProfile}){
                     </svg>
                     {/* Invite notification badge */}
                     {t.id==="social"&&fsInvites.length>0&&<div style={{position:"absolute",top:2,right:2,minWidth:16,height:16,borderRadius:8,background:"#FF3B30",border:"2px solid #0F0F18",display:"flex",alignItems:"center",justifyContent:"center",fontSize:9,fontWeight:900,color:"#fff",padding:"0 3px"}}>{fsInvites.length}</div>}
-                    {t.id==="chat"&&chatUnread>0&&<div style={{position:"absolute",top:2,right:2,minWidth:16,height:16,borderRadius:8,background:"#FF3B30",border:"2px solid #0F0F18",display:"flex",alignItems:"center",justifyContent:"center",fontSize:9,fontWeight:900,color:"#fff",padding:"0 3px"}}>{chatUnread}</div>}
                   </div>
                   {/* Active bar under icon */}
                   {active&&<div style={{position:"absolute",bottom:22,left:"50%",width:22,height:3,borderRadius:2,background:"linear-gradient(90deg,"+t.grad[0]+","+t.grad[1]+")",boxShadow:"0 0 10px "+t.grad[0]+"cc,0 0 20px "+t.grad[0]+"55",animation:"navGlow 2.5s ease-in-out infinite",zIndex:1}}/>}
